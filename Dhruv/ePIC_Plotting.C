@@ -160,7 +160,7 @@ void ePIC_Plotting()
   canvas2->Print(filename2, "pdf");
   // end of reconstructed eta  
 
-  // FILE 3 - gen & rec eta: //                                                                                                         
+  // FILE 3 - gen & rec eta: //
 
   // Define the name of the plot:
   TString name3 = TString("gen-recEta_species");
@@ -403,20 +403,23 @@ void ePIC_Plotting()
   //kpmfromphiRecEta->Draw("same");
   // fat channels:
   kpmfromphiRecEta->SetLineStyle(2);
-  kpmfromphiRecEta->SetTitle("Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', Gen#phi vs Reco decay K+K-");
+  kpmfromphiRecEta->SetTitle("Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', Gen vs Reco decay K+K-");
   kpmfromphiRecEta->SetLineColor(kRed);
   kpmfromphiRecEta->Draw();
-  phiEta->SetLineStyle(1);
+    kaonEta->SetLineStyle(1);
+    kaonEta->SetLineColor(kBlack);
+    kaonEta->SetLineStyle(1);
+  kaonEta->Draw("same");
+  /*phiEta->SetLineStyle(1);
   phiEta->SetLineColor(kBlack);
   phiEta->SetLineStyle(1);
   phiEta->Draw("same");
-  
-  canvas5->Draw();
+  canvas5->Draw();*/
 
   auto leg5 = new TLegend(0.6,0.7,0.78,0.8); //x1,y1,x2,y2,header
   leg5->SetFillStyle(0);
   leg5->AddEntry(kpmfromphiRecEta,"reco kaons (#pm)","l");
-  leg5->AddEntry(phiEta,"gen #phi","l");
+  leg5->AddEntry(phiEta,"gen kaons","l");
   leg5->Draw();
 
   // add vertical lines for nHCal acceptance
@@ -505,8 +508,9 @@ void ePIC_Plotting()
     TCanvas *canvas7 = new TCanvas(name7, strang, 800, 600);
     canvas7->SetLogx();
     canvas7->SetTopMargin(0.07);
-
-    xBjorken->Draw();
+    
+    xBjorken->Draw("HIST");
+    xBjorken->Draw("E SAME");
     canvas7->Draw();
     canvas7->Print(filename7, "pdf");
     
@@ -524,9 +528,8 @@ void ePIC_Plotting()
     TCanvas *canvas8 = new TCanvas(name8, strang, 800, 600);
     canvas8->SetLogx();
     canvas8->SetTopMargin(0.07);
-
-    
-    q2->Draw();
+    q2->Draw("HIST");
+    q2->Draw("E SAME");
     canvas8->Draw();
     canvas8->Print(filename8, "pdf");
      
@@ -586,23 +589,33 @@ void ePIC_Plotting()
 
     xB_v_percent_0->SetMarkerStyle(8);
     xB_v_percent_0->SetMarkerColor(kBlack);
+    xB_v_percent_0->SetLineColor(kBlack);
+    xB_v_percent_0->SetLineWidth(4);
     xB_v_percent_0->SetMaximum(1.4);
     xB_v_percent_0->SetMinimum(-0.001);
     xB_v_percent_0->GetXaxis()->SetTitleOffset(1.2);
     
     xB_v_percent_1->SetMarkerStyle(8);
     xB_v_percent_1->SetMarkerColor(kBlue);
+    xB_v_percent_1->SetLineColor(kBlue);
+    xB_v_percent_1->SetLineWidth(4);
     
     xB_v_percent_2->SetMarkerStyle(8);
     xB_v_percent_2->SetMarkerColor(kRed);
+    xB_v_percent_2->SetLineColor(kRed);
+    xB_v_percent_2->SetLineWidth(4);
     
     xB_v_percent_all->SetMarkerStyle(8);
     xB_v_percent_all->SetMarkerColor(kMagenta);
+    xB_v_percent_all->SetLineColor(kMagenta);
+    xB_v_percent_all->SetLineWidth(4);
     
-    xB_v_percent_0->Draw("P");
-    xB_v_percent_1->Draw("same P");
-    xB_v_percent_2->Draw("same P");
-    xB_v_percent_all->Draw("same P");
+    gStyle->SetEndErrorSize(0);
+    
+    xB_v_percent_0->Draw("E1X0 P");
+    xB_v_percent_1->Draw("E1X0 P SAME");
+    xB_v_percent_2->Draw("E1X0 P SAME");
+    xB_v_percent_all->Draw("E1X0 P SAME");
     
     auto xB_percent_leg = new TLegend(0.48,0.75,0.78,0.88);
     xB_percent_leg->SetFillStyle(0);
@@ -632,9 +645,11 @@ void ePIC_Plotting()
     TString filename11 = pdfdir + TString("/") + TString(name11) + TString(".pdf");
      
     //Get the histogram data from ePIC_Analysis.C
-    TH2D *xB_q2_hist = (TH2D*)ifile->Get("xB_q2_hist");
+    TH2F *xB_q2_hist = (TH2F*)ifile->Get("xB_q2_hist");
     xB_q2_hist->SetMarkerColor(kWhite);
     xB_q2_hist->SetMarkerSize(2);
+    xB_q2_hist->GetXaxis()->SetTitle("x_{Bj}");
+    xB_q2_hist->GetYaxis()->SetTitle("q^{2}");
     
      //gStyle->SetOptStat(0);
     TCanvas *canvas11 = new TCanvas(name11, strang, 600, 600);
@@ -646,7 +661,7 @@ void ePIC_Plotting()
     canvas11->SetRightMargin(0.15);
     canvas11->SetLeftMargin(0.15);
 
-    gStyle->SetPalette(kRainBow);// Choose color palette
+    gStyle->SetPalette(kBird);// Choose color palette
     gStyle->SetNumberContours(256);
 
     xB_q2_hist->Draw("COLZ");
@@ -673,7 +688,8 @@ void ePIC_Plotting()
     TCanvas *canvas12 = new TCanvas(name12, strang, 800, 600);
     canvas12->SetTopMargin(0.07);
     
-    all_eta->Draw();
+    all_eta->Draw("HIST");
+    all_eta->Draw("E SAME");
     
     TLine *nHCAL_min_line= new TLine(-4.05,0.,-4.05,750);  // (x1,y1,x2,y2)
     nHCAL_min_line->SetLineColor(kBlack);
@@ -701,6 +717,38 @@ void ePIC_Plotting()
     
     // end of all eta histogram
     
+    
+    TString name14 = TString("newQ2");
+     
+    TString filename14 = pdfdir + TString("/") + TString(name14) + TString(".pdf");
+     
+    TH1D *newQ2 = (TH1D*)ifile->Get("newQ2");
+     
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas14 = new TCanvas(name14, strang, 800, 600);
+    canvas14->SetLogx();
+    canvas14->SetTopMargin(0.07);
+    newQ2->Draw("HIST");
+    //newQ2->Draw("E SAME");
+    canvas14->Draw();
+    canvas14->Print(filename14, "pdf");
+    
+    TString name15 = TString("newXb");
+     
+    TString filename15 = pdfdir + TString("/") + TString(name15) + TString(".pdf");
+     
+    TH1D *newXb = (TH1D*)ifile->Get("newXb");
+     
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas15 = new TCanvas(name15, strang, 800, 600);
+    canvas15->SetLogx();
+    canvas15->SetTopMargin(0.07);
+    newXb->Draw("HIST");
+    //newXb->Draw("E SAME");
+    canvas15->Draw();
+    canvas15->Print(filename15, "pdf");
     
   //
   cout << "Thank you for running Caro's macro.\n";

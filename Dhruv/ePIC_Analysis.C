@@ -18,6 +18,103 @@ float calNums[sizeof(cals)][3];
 //Array containing the K1/K2 crossover within different calorimeters and an "All"
 float calMatrix[4][4];
 
+void ConvertToLogBins2D(TH2F*& hist, int numBinsX, double minX, double maxX, int numBinsY, double minY, double maxY) {
+    // Check if minX and minY are positive
+    if (minX <= 0 || minY <= 0) {
+        std::cerr << "Error: Minimum values for logarithmic bins must be positive." << std::endl;
+        return;
+    }
+
+    // Prepare logarithmic bin edges for x-axis
+    std::vector<float> binEdgesX(numBinsX + 1);
+    double logMinX = TMath::Log10(minX);
+    double logMaxX = TMath::Log10(maxX);
+    double logBinWidthX = (logMaxX - logMinX) / numBinsX;
+    for (int i = 0; i <= numBinsX; ++i) {
+        binEdgesX[i] = TMath::Power(10, logMinX + i * logBinWidthX);
+    }
+
+    // Prepare logarithmic bin edges for y-axis
+    std::vector<float> binEdgesY(numBinsY + 1);
+    double logMinY = TMath::Log10(minY);
+    double logMaxY = TMath::Log10(maxY);
+    double logBinWidthY = (logMaxY - logMinY) / numBinsY;
+    for (int i = 0; i <= numBinsY; ++i) {
+        binEdgesY[i] = TMath::Power(10, logMinY + i * logBinWidthY);
+    }
+
+    // Create a new 2D histogram with logarithmic binning on both axes
+    TH2F* logHist2D = new TH2F("logHist2D", hist->GetTitle(), numBinsX, binEdgesX.data(), numBinsY, binEdgesY.data());
+
+    // Transfer contents from the old histogram to the new one
+    for (int i = 1; i <= hist->GetNbinsX(); ++i) {
+        for (int j = 1; j <= hist->GetNbinsY(); ++j) {
+            double x = hist->GetXaxis()->GetBinCenter(i);
+            double y = hist->GetYaxis()->GetBinCenter(j);
+            double content = hist->GetBinContent(i, j);
+
+            int bin = logHist2D->FindBin(x, y);
+            if (bin > 0) {
+                logHist2D->SetBinContent(bin, content + logHist2D->GetBinContent(bin));
+            }
+        }
+    }
+
+    // Replace the old histogram with the new one
+    delete hist;      // Delete the old histogram to free memory
+    hist = logHist2D; // Update the pointer to point to the new histogram
+}
+
+void ConvertToLogBins(TH1F*& hist, int numBins, double min, double max) {
+    // Check if min is positive
+    if (min <= 0) {
+        std::cerr << "Error: Log bins can only take positive values" << std::endl;
+        return;
+    }
+
+    std::vector<double> binEdges(numBins + 1);
+
+    // Calculate log bin edges
+    double logMin = TMath::Log10(min);
+    double logMax = TMath::Log10(max);
+    double logBinWidth = (logMax - logMin) / numBins;
+
+    for (int i = 0; i <= numBins; ++i) {
+        binEdges[i] = TMath::Power(10, logMin + i * logBinWidth);
+    }
+
+    // Create a new histogram with logarithmic binning
+    TH1F* logHist = new TH1F("logHist", hist->GetTitle(), numBins, binEdges.data());
+
+    // Transfer contents from the original histogram to the new one
+    for (int i = 1; i <= hist->GetNbinsX(); ++i) {
+        double x = hist->GetBinCenter(i);
+        double y = hist->GetBinContent(i);
+        //double error = hist->GetBinError(i);
+        
+        // Find the corresponding bin in the logarithmic histogram
+        int bin = logHist->FindBin(x);
+        if (bin >= 1 && bin <= numBins) {
+            logHist->SetBinContent(bin, y + logHist->GetBinContent(bin));
+            //logHist->SetBinError(bin, TMath::Sqrt(TMath::Power(logHist->GetBinError(bin), 2) + TMath::Power(error, 2)));
+        }
+    }
+
+    // Replace the original histogram with the logarithmic one
+    hist->SetBins(numBins, binEdges.data());
+    for (int i = 1; i <= numBins; ++i) {
+        hist->SetBinContent(i, logHist->GetBinContent(i));
+        //hist->SetBinError(i, logHist->GetBinError(i));
+    }
+
+    // Clean up
+    delete logHist;
+}
+
+double calcPortionErr(double part, double total) { //Manually calculate errors for ratio values part/total
+    return (part/total) * TMath::Sqrt(TMath::Power(TMath::Sqrt(part) / part, 2) +
+                                      TMath::Power(TMath::Sqrt(total) / total, 2));
+}
 //Accepts a string cal_name containing the desired calorimeter name and returns true if an eta particle_eta is within acceptance for the given calorimeter
 bool in_Cal_Tolerance(const char* cal_name, float particle_eta) {
     if (cal_name == nHCal_name) {
@@ -126,9 +223,11 @@ void ePIC_Analysis(){
   cout << "Input directory is: " << indir << "/" << filetype_dir << " \n";
     
   // Define name of local input MC file:
-  const char strang[]="Sartre_Au_phi_10runs"; // "strang = data string"
+  //const char strang[]="sartre_bnonsat_Au_phi_ab_eAu_1.0000.eicrecon.tree.edm4eic"; // "strang = data string"
+  const char strang[]="Sartre_Au_phi_10runs";
+  //const char strang[]="pythia8NCDIS_18x275_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1.0998.eicrecon.tree.edm4eic"; // "strang = data string"
+
     //
-    
     TString runlist_ram=TString("local_runlists/") + strang + TString("_runlist.txt");  // MULTI FILE RUNNING
     const char *runlist=runlist_ram.Data(); // MULTI FILE RUNNING
   
@@ -201,26 +300,41 @@ void ePIC_Analysis(){
   TH2D *kaonOccurrence = new TH2D("kaonOccurrence", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', Kaon HCal Acceptance (%);K_{1};K_{2}", 4, 0, 4, 4, 0, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
   
   //xB vs q2 histogram
-  TH2D *xB_q2_hist = new TH2D("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs q^{2} Occurrence(%);log_{10}x_{Bj};log_{10}q^{2}", 40, 0, 0.005, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
+  TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs q^{2} Occurrence(%)", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
+  ConvertToLogBins2D(xB_q2_hist, 40, 1e-4, 0.02, 40, 1, 10);
   
   //Histogram displaying all eta of all kaons of run
   TH1F *all_eta = new TH1F("all_eta", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- eta Distribution; #eta", 100, -5, 5);
     
   //X-bjorken Histogram
-  TH1F *xBjorken = new TH1F("xBjorken", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution; x_{Bj}", 100, 0, 0.075);
+  TH1F *xBjorken = new TH1F("xBjorken", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution; x_{Bj}", 75, 1e-4, 0.075);
+  ConvertToLogBins(xBjorken, 75, 1e-4, 0.075);
     
   //q^2 Histogram
-  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay q^{2} distribution; q^{2}", 100, 1,10);
+  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay q^{2} distribution; q^{2}", 50, 1,10);
+    ConvertToLogBins(q2, 50, 1, 10);
+    
+     TH1F *newQ2 = new TH1F("newQ2", "Pythia: 18 x 275 Beam Effects, q^{2} distribution; q^{2}", 50, 1, 10);
+    ConvertToLogBins(newQ2, 50, 1, 10);
+    
+    TH1F *newXb = new TH1F("newXb", "Pythia: 18 x 275 Beam Effects, x_{Bj} distribution; x_{Bj}", 75, 1e-5, 2);
+    ConvertToLogBins(newXb, 75, 1e-5, 2);
     
   //xB_v_q2 Graph
   TGraph *xB_v_q2 = new TGraph();
     
   //xB vs percentage Histograms for 0, 1, 2 kaons in nHCal
-  int xB_percent_nBins = 300;
-  TH1F *xB_v_percent_0 = new TH1F("xB_v_percent_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}", xB_percent_nBins, 0.00001, 0.1);
-  TH1F *xB_v_percent_1 = new TH1F("xB_v_percent_1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}", xB_percent_nBins, 0.00001, 0.1);
-  TH1F *xB_v_percent_2 = new TH1F("xB_v_percent_2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}", xB_percent_nBins, 0.00001, 0.1);
-  TH1F *xB_v_percent_all = new TH1F("xB_v_percent_all", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}", xB_percent_nBins, 0.00001, 0.1);
+  int xB_percent_nBins = 50;
+  TH1F *xB_v_percent_0 = new TH1F("xB_v_percent_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
+    ConvertToLogBins(xB_v_percent_0, xB_percent_nBins, 0.0001, 0.1);
+  TH1F *xB_v_percent_1 = new TH1F("xB_v_percent_1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
+    ConvertToLogBins(xB_v_percent_1, xB_percent_nBins, 0.0001, 0.1);
+  TH1F *xB_v_percent_2 = new TH1F("xB_v_percent_2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
+    ConvertToLogBins(xB_v_percent_2, xB_percent_nBins, 0.0001, 0.1);
+  TH1F *xB_v_percent_all = new TH1F("xB_v_percent_all", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
+    ConvertToLogBins(xB_v_percent_all, xB_percent_nBins, 0.0001, 0.1);
+  TH1F *xB_v_percent_denom = new TH1F("xB_v_percent_denom", "Sartre: ", xB_percent_nBins, 0.001, 0.1);
+    ConvertToLogBins(xB_v_percent_denom, xB_percent_nBins, 0.0001, 0.1);
     
   //generatorStatus
   TH1D *generatorStatus = new TH1D("generatorStatus","Status of generated particles, all; generatorStatus",101,0,100);
@@ -307,11 +421,14 @@ void ePIC_Analysis(){
   int nreco_phi = 0; //total # of phi decay with both kaons reconstructed
 
   cout << "+ Ready to run over events... \n";
+    int inB = 0;
 
   
   while(tree_reader.Next()) { // Loop over events
-
+      newQ2->Fill(partQ2[0]); //PYTHIA STUFF
+      newXb->Fill(partXb[0]);
     ievgen++;
+      
     int kaons_in_nHCal = 0; //set the number of kaons within tolerance to 0 and reset for each particle
     float k1_eta;
     float k2_eta;
@@ -501,7 +618,6 @@ void ePIC_Analysis(){
       // Fill all true phi:
       partPhi->Fill(truePhi);
       
-      
       // Loop over associations to find matching ReconstructedChargedParticle
       for(unsigned int j=0; j<simuAssoc.GetSize(); j++)
         {
@@ -595,6 +711,9 @@ void ePIC_Analysis(){
               kpmfromphiRecEta->Fill(recEta_phi_k1);
                 decays[decays.size()-1].eta1 = recEta_phi_k1;
                 k1_eta = recEta_phi_k1;
+                if (in_Cal_Tolerance(cals[1], k1_eta)) {
+                    inB++;
+                }
                 all_eta->Fill(k1_eta);
                 
                 //Check that the kaon is within a given HCal, in this case nHCal
@@ -615,6 +734,9 @@ void ePIC_Analysis(){
               kpmfromphiRecEta->Fill(recEta_phi_k2);
                 decays[decays.size()-1].eta2 = recEta_phi_k2;
                 k2_eta = recEta_phi_k2;
+                if (in_Cal_Tolerance(cals[1], k2_eta)) {
+                    inB++;
+                }
                 all_eta->Fill(k2_eta);
                 
                 //Check that the kaon is within a given HCal, in this case nHCal
@@ -652,17 +774,6 @@ void ePIC_Analysis(){
     // now go to next event
     
   } // End loop over events
-    
-    //Run methods to fill kaon occurrence matrices
-    /*cout << "HAS LENGTH" << decays.size() << "\n";
-    int i = 100;
-    cout << "EVENT " << i << " has xb " << decays[i].x_b << "\n";
-    cout << "EVENT " << i+1 << " has xb " << decays[i+1].x_b << "\n";
-    cout << "EVENT " << i+2 << " has xb " << decays[i+2].x_b << "\n";
-    cout << "EVENT " << i+3 << " has xb " << decays[i+3].x_b << "\n";
-    cout << "EVENT " << i+4 << " has xb " << decays[i+4].x_b << "\n";
-    cout << "EVENT " << i+5 << " has xb " << decays[i+5].x_b << "\n";
-    cout << "EVENT " << i+6 << " has xb " << decays[i+6].x_b << "\n";*/
 
     for (phiDecay decay : decays) {
         kaons_in_Cal(decay.eta1, decay.eta2);
@@ -679,7 +790,7 @@ void ePIC_Analysis(){
         xB_q2_hist->SetBinContent(bin_x, bin_y, xB_q2_hist->GetBinContent(bin_x, bin_y)+1);
     }
     
-    
+    cout << "inB is " << inB << "\n";
     //start construction of xB_v_percent plot
     
     //Create a matrix with 4 rows containing values for each bin for 0, 1, 2 kaons in nHCal and all calo(WIP)
@@ -716,18 +827,35 @@ void ePIC_Analysis(){
             } else {
                 xB_v_percent_all->SetBinContent(i, 0);
             }
+            
+            /*xB_v_percent_0->SetBinError(i,0);
+            xB_v_percent_1->SetBinError(i, 0);
+            xB_v_percent_2->SetBinError(i, 0);
+            xB_v_percent_all->SetBinError(i, 0);*/
         } else {
-            xB_v_percent_0->SetBinContent(i, inBins[0][i] / inBins[4][i]);
-            xB_v_percent_1->SetBinContent(i, inBins[1][i] / inBins[4][i]);
-            xB_v_percent_2->SetBinContent(i, inBins[2][i] / inBins[4][i]);
-            xB_v_percent_all->SetBinContent(i, inBins[3][i] / inBins[4][i]);
+            xB_v_percent_0->SetBinContent(i, inBins[0][i]);
+            xB_v_percent_1->SetBinContent(i, inBins[1][i]);
+            xB_v_percent_2->SetBinContent(i, inBins[2][i]);
+            xB_v_percent_all->SetBinContent(i, inBins[3][i]);
+            xB_v_percent_denom->SetBinContent(i, inBins[4][i]);
+            
+            /*xB_v_percent_0->SetBinError(i, calcPortionErr(inBins[0][i], inBins[4][i]));
+            xB_v_percent_1->SetBinError(i, calcPortionErr(inBins[1][i], inBins[4][i]));
+            xB_v_percent_2->SetBinError(i, calcPortionErr(inBins[2][i], inBins[4][i]));
+            xB_v_percent_all->SetBinError(i, calcPortionErr(inBins[3][i], inBins[4][i]));*/
         }
     }
+    xB_v_percent_0->Divide(xB_v_percent_0, xB_v_percent_denom, 1, 1, "B");
+    xB_v_percent_1->Divide(xB_v_percent_1, xB_v_percent_denom, 1, 1, "B");
+    xB_v_percent_2->Divide(xB_v_percent_2, xB_v_percent_denom, 1, 1, "B");
+    xB_v_percent_all->Divide(xB_v_percent_all, xB_v_percent_denom, 1, 1, "B");
+
     
     //end construction of xB_v_percent plot
     
     //Write data to TGraph
     xB_v_q2->Write("xB_v_q2");
+    xB_q2_hist->Write("xB_q2_hist");
 
   // Calculate fractions:
   double fraction_rho0_pionpm_nHCal = 0.;
