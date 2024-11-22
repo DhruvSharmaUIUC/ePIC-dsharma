@@ -118,11 +118,11 @@ double calcPortionErr(double part, double total) { //Manually calculate errors f
 //Accepts a string cal_name containing the desired calorimeter name and returns true if an eta particle_eta is within acceptance for the given calorimeter
 bool in_Cal_Tolerance(const char* cal_name, float particle_eta) {
     if (cal_name == nHCal_name) {
-        return (particle_eta >= -4.05 && particle_eta <= -1.2);
+        return (particle_eta >= -4.05 && particle_eta < -1.2);
     } else if (cal_name == Barrel_name) {
-        return (particle_eta >= -1.2 && particle_eta <= 1.18);
+        return (particle_eta >= -1.2 && particle_eta < 1.18);
     } else if (cal_name == LFHCAL_name) {
-        return (particle_eta >= 1.18 && particle_eta <= 4.2);
+        return (particle_eta >= 1.18 && particle_eta < 4.2);
     }
     return false;
 }
@@ -168,7 +168,7 @@ void fill_Cal_Arr(float p1_eta, float p2_eta) {
 //Create a class phiDecay representing each decay and contain attributes of each decay in a single unit for access throughout the program
 class phiDecay {
 public:
-    float eta1, eta2;
+    float eta1, eta2, k1_pT, k2_pT;
     int num_in_nHCal;
     double x_b, q2;
     int reco_parts;
@@ -300,7 +300,7 @@ void ePIC_Analysis(){
   TH2D *kaonOccurrence = new TH2D("kaonOccurrence", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', Kaon HCal Acceptance (%);K_{1};K_{2}", 4, 0, 4, 4, 0, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
   
   //xB vs q2 histogram
-  TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs q^{2} Occurrence(%)", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
+  TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs Q^{2} Occurrence(%)", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
   ConvertToLogBins2D(xB_q2_hist, 40, 1e-4, 0.02, 40, 1, 10);
   
   //Histogram displaying all eta of all kaons of run
@@ -310,11 +310,25 @@ void ePIC_Analysis(){
   TH1F *xBjorken = new TH1F("xBjorken", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution; x_{Bj}", 75, 1e-4, 0.075);
   ConvertToLogBins(xBjorken, 75, 1e-4, 0.075);
     
+    TH1F *xBjorken_0 = new TH1F("xBjorken0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution, 0 K+K- in nHCal; x_{Bj}", 75, 1e-4, 0.075);
+    ConvertToLogBins(xBjorken_0, 75, 1e-4, 0.075);
+    TH1F *xBjorken_1 = new TH1F("xBjorken1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution, 1 K+K- in nHCal; x_{Bj}", 75, 1e-4, 0.075);
+    ConvertToLogBins(xBjorken_1, 75, 1e-4, 0.075);
+    TH1F *xBjorken_2 = new TH1F("xBjorken2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution, 2 K+K- in nHCal; x_{Bj}", 75, 1e-4, 0.075);
+    ConvertToLogBins(xBjorken_2, 75, 1e-4, 0.075);
+    
   //q^2 Histogram
-  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay q^{2} distribution; q^{2}", 50, 1,10);
+  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution; Q^{2} (GeV^{2})", 50, 1,10);
     ConvertToLogBins(q2, 50, 1, 10);
     
-     TH1F *newQ2 = new TH1F("newQ2", "Pythia: 18 x 275 Beam Effects, q^{2} distribution; q^{2}", 50, 1, 10);
+    TH1F *q2_0 = new TH1F("q2_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution, 0 K+K- in nHCal; Q^{2} (GeV^{2})", 50, 1,10);
+      ConvertToLogBins(q2_0, 50, 1, 10);
+    TH1F *q2_1 = new TH1F("q2_1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution, 1 K+K- in nHCal; Q^{2} (GeV^{2})", 50, 1,10);
+      ConvertToLogBins(q2_1, 50, 1, 10);
+    TH1F *q2_2 = new TH1F("q2_2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution, 2 K+K- in nHCal; Q^{2} (GeV^{2})", 50, 1,10);
+      ConvertToLogBins(q2_2, 50, 1, 10);
+    
+     TH1F *newQ2 = new TH1F("newQ2", "Pythia: 18 x 275 Beam Effects, Q^{2} distribution; Q^{2}", 50, 1, 10);
     ConvertToLogBins(newQ2, 50, 1, 10);
     
     TH1F *newXb = new TH1F("newXb", "Pythia: 18 x 275 Beam Effects, x_{Bj} distribution; x_{Bj}", 75, 1e-5, 2);
@@ -323,18 +337,25 @@ void ePIC_Analysis(){
   //xB_v_q2 Graph
   TGraph *xB_v_q2 = new TGraph();
     
+    TGraph *eta_v_pT = new TGraph();
+    TH2F *eta_v_pT_hist = new TH2F("eta_v_pT_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs pT", 55, -4.5, 4.5, 55, 0, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    TGraph *eta_v_xB = new TGraph();
+    TH2F *eta_v_xB_hist = new TH2F("eta_v_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs x_{Bj}", 55, -4.5, 4.5, 55, 0, 0.07); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    TGraph *eta_v_q2 = new TGraph();
+    TH2F *eta_v_q2_hist = new TH2F("eta_v_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs Q^{2}", 55, -4.5, 4.5, 55, 0, 22); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    
   //xB vs percentage Histograms for 0, 1, 2 kaons in nHCal
-  int xB_percent_nBins = 50;
-  TH1F *xB_v_percent_0 = new TH1F("xB_v_percent_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
-    ConvertToLogBins(xB_v_percent_0, xB_percent_nBins, 0.0001, 0.1);
-  TH1F *xB_v_percent_1 = new TH1F("xB_v_percent_1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
-    ConvertToLogBins(xB_v_percent_1, xB_percent_nBins, 0.0001, 0.1);
-  TH1F *xB_v_percent_2 = new TH1F("xB_v_percent_2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
-    ConvertToLogBins(xB_v_percent_2, xB_percent_nBins, 0.0001, 0.1);
-  TH1F *xB_v_percent_all = new TH1F("xB_v_percent_all", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.0001, 0.1);
-    ConvertToLogBins(xB_v_percent_all, xB_percent_nBins, 0.0001, 0.1);
-  TH1F *xB_v_percent_denom = new TH1F("xB_v_percent_denom", "Sartre: ", xB_percent_nBins, 0.001, 0.1);
-    ConvertToLogBins(xB_v_percent_denom, xB_percent_nBins, 0.0001, 0.1);
+  int xB_percent_nBins = 60;
+  TH1F *xB_v_percent_0 = new TH1F("xB_v_percent_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.00001, 1);
+    ConvertToLogBins(xB_v_percent_0, xB_percent_nBins, 0.00001, 1);
+  TH1F *xB_v_percent_1 = new TH1F("xB_v_percent_1", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.00001, 1);
+    ConvertToLogBins(xB_v_percent_1, xB_percent_nBins, 0.00001, 1);
+  TH1F *xB_v_percent_2 = new TH1F("xB_v_percent_2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.00001, 1);
+    ConvertToLogBins(xB_v_percent_2, xB_percent_nBins, 0.00001, 1);
+  TH1F *xB_v_percent_all = new TH1F("xB_v_percent_all", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', x_{Bj} vs percent ocurrence (%);x_{Bj}; geom. acc(%)", xB_percent_nBins, 0.00001, 1);
+    ConvertToLogBins(xB_v_percent_all, xB_percent_nBins, 0.00001, 1);
+  TH1F *xB_v_percent_denom = new TH1F("xB_v_percent_denom", "Sartre: ", xB_percent_nBins, 0.00001, 1);
+    ConvertToLogBins(xB_v_percent_denom, xB_percent_nBins, 0.00001, 1);
     
   //generatorStatus
   TH1D *generatorStatus = new TH1D("generatorStatus","Status of generated particles, all; generatorStatus",101,0,100);
@@ -710,6 +731,8 @@ void ePIC_Analysis(){
                 float recPhi_phi_k1 = recMom_phi_k1.Phi();
               kpmfromphiRecEta->Fill(recEta_phi_k1);
                 decays[decays.size()-1].eta1 = recEta_phi_k1;
+                decays[decays.size()-1].k1_pT = sqrt((trackMomX[recoAssoc[j]] * trackMomX[recoAssoc[j]])
+                                                     + (trackMomY[recoAssoc[j]] * trackMomY[recoAssoc[j]]));
                 k1_eta = recEta_phi_k1;
                 if (in_Cal_Tolerance(cals[1], k1_eta)) {
                     inB++;
@@ -733,6 +756,7 @@ void ePIC_Analysis(){
                 float recPhi_phi_k2 = recMom_phi_k2.Phi();
               kpmfromphiRecEta->Fill(recEta_phi_k2);
                 decays[decays.size()-1].eta2 = recEta_phi_k2;
+                decays[decays.size()-1].k2_pT = sqrt((trackMomX[recoAssoc[j]] * trackMomX[recoAssoc[j]]) + (trackMomY[recoAssoc[j]] * trackMomY[recoAssoc[j]]));
                 k2_eta = recEta_phi_k2;
                 if (in_Cal_Tolerance(cals[1], k2_eta)) {
                     inB++;
@@ -782,12 +806,65 @@ void ePIC_Analysis(){
         }
         //Fill Graphs/Histograms
         xBjorken->Fill(decay.x_b);
+        decay.set_num_in_nHCal();
+        //cout << "K1 HAS " << decay.k1_pT << " AND K2 HAS " << decay.k2_pT << " AND " << decay.num_in_nHCal << "\n";
         q2->Fill(decay.q2);
+        if (decay.num_in_nHCal == 0) {
+            xBjorken_0->Fill(decay.x_b);
+            q2_0->Fill(decay.q2);
+        } else if (decay.num_in_nHCal == 1) {
+            xBjorken_1->Fill(decay.x_b);
+            q2_1->Fill(decay.q2);
+        } else if (decay.num_in_nHCal == 2) {
+            xBjorken_2->Fill(decay.x_b);
+            q2_2->Fill(decay.q2);
+        }
         xB_v_q2->AddPoint(decay.x_b, decay.q2);
         
-        int bin_x = xB_q2_hist->GetXaxis()->FindBin(decay.x_b);
-        int bin_y = xB_q2_hist->GetYaxis()->FindBin(decay.q2);
-        xB_q2_hist->SetBinContent(bin_x, bin_y, xB_q2_hist->GetBinContent(bin_x, bin_y)+1);
+        if (decay.eta1 > 5.9479e-36 || decay.eta1 < -5.9479e-36) {
+            eta_v_pT->AddPoint(decay.eta1, decay.k1_pT);
+            eta_v_xB->AddPoint(decay.eta1, decay.x_b);
+            eta_v_q2->AddPoint(decay.eta1, decay.q2);
+            
+            int eta_pT_bin_x = eta_v_pT_hist->GetXaxis()->FindBin(decay.eta1);
+            int eta_pT_bin_y = eta_v_pT_hist->GetYaxis()->FindBin(decay.k1_pT);
+            eta_v_pT_hist->SetBinContent(eta_pT_bin_x, eta_pT_bin_y, eta_v_pT_hist->GetBinContent(eta_pT_bin_x, eta_pT_bin_y)+1);
+            
+            int eta_xB_bin_x = eta_v_xB_hist->GetXaxis()->FindBin(decay.eta1);
+            int eta_xB_bin_y = eta_v_xB_hist->GetYaxis()->FindBin(decay.x_b);
+            eta_v_xB_hist->SetBinContent(eta_xB_bin_x, eta_xB_bin_y, eta_v_xB_hist->GetBinContent(eta_xB_bin_x, eta_xB_bin_y)+1);
+            
+            int eta_q2_bin_x = eta_v_q2_hist->GetXaxis()->FindBin(decay.eta1);
+            int eta_q2_bin_y = eta_v_q2_hist->GetYaxis()->FindBin(decay.q2);
+            eta_v_q2_hist->SetBinContent(eta_q2_bin_x, eta_q2_bin_y, eta_v_q2_hist->GetBinContent(eta_q2_bin_x, eta_q2_bin_y)+1);
+        }
+        if (decay.eta2 > 5.9479e-36 || decay.eta2 < -5.9479e-36) {
+            eta_v_pT->AddPoint(decay.eta2, decay.k2_pT);
+            eta_v_xB->AddPoint(decay.eta2, decay.x_b);
+            eta_v_q2->AddPoint(decay.eta2, decay.q2);
+
+            int eta_pT_bin_x = eta_v_pT_hist->GetXaxis()->FindBin(decay.eta2);
+            int eta_pT_bin_y = eta_v_pT_hist->GetYaxis()->FindBin(decay.k2_pT);
+            eta_v_pT_hist->SetBinContent(eta_pT_bin_x, eta_pT_bin_y, eta_v_pT_hist->GetBinContent(eta_pT_bin_x, eta_pT_bin_y)+1);
+            
+            int eta_xB_bin_x = eta_v_xB_hist->GetXaxis()->FindBin(decay.eta2);
+            int eta_xB_bin_y = eta_v_xB_hist->GetYaxis()->FindBin(decay.x_b);
+            eta_v_xB_hist->SetBinContent(eta_xB_bin_x, eta_xB_bin_y, eta_v_xB_hist->GetBinContent(eta_xB_bin_x, eta_xB_bin_y)+1);
+            
+            int eta_q2_bin_x = eta_v_q2_hist->GetXaxis()->FindBin(decay.eta2);
+            int eta_q2_bin_y = eta_v_q2_hist->GetYaxis()->FindBin(decay.q2);
+            eta_v_q2_hist->SetBinContent(eta_q2_bin_x, eta_q2_bin_y, eta_v_q2_hist->GetBinContent(eta_q2_bin_x, eta_q2_bin_y)+1);
+        }
+        
+        
+        
+        int xb_q2_bin_x = xB_q2_hist->GetXaxis()->FindBin(decay.x_b);
+        int xb_q2_bin_y = xB_q2_hist->GetYaxis()->FindBin(decay.q2);
+        xB_q2_hist->SetBinContent(xb_q2_bin_x, xb_q2_bin_y, xB_q2_hist->GetBinContent(xb_q2_bin_x, xb_q2_bin_y)+1);
+        
+        if (decay.num_in_nHCal == 0 && (decay.x_b < 0.001) && decay.reco_parts == 2) {
+            cout << "Xbj is " << decay.x_b << " and the Kaon etas are " << decay.eta1 << " and " << decay.eta2 << "\n";
+        }
     }
     
     cout << "inB is " << inB << "\n";
@@ -855,6 +932,11 @@ void ePIC_Analysis(){
     
     //Write data to TGraph
     xB_v_q2->Write("xB_v_q2");
+    
+    eta_v_pT->Write("eta_v_pT");
+    eta_v_xB->Write("eta_v_xB");
+    eta_v_q2->Write("eta_v_q2");
+    
     xB_q2_hist->Write("xB_q2_hist");
 
   // Calculate fractions:

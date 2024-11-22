@@ -475,6 +475,9 @@ void ePIC_Plotting()
     kaonOccurrence->GetYaxis()->SetBinLabel(3,"LFHCAL");
     kaonOccurrence->GetYaxis()->SetBinLabel(4,"Any HCal");
     
+    kaonOccurrence->GetZaxis()->SetTitle("geom acc. (%)");
+    kaonOccurrence->GetZaxis()->SetTitleOffset(1.3);
+    
     gStyle->SetOptStat(0);
     TCanvas *canvas6 = new TCanvas(name6, strang, 600, 600);
     canvas6->SetTopMargin(0.07);
@@ -551,10 +554,10 @@ void ePIC_Plotting()
     xB_v_q2->SetMarkerSize(0.5);
     
     //Add Title and Axis Labels
-    xB_v_q2->SetTitle("x_{Bj} vs q^{2} values");
+    xB_v_q2->SetTitle("x_{Bj} vs Q^{2} values");
     xB_v_q2->GetXaxis()->SetTitle("log_{10}x_{Bj}");
     xB_v_q2->GetXaxis()->CenterLabels();
-    xB_v_q2->GetYaxis()->SetTitle("log_{10}q^{2}");
+    xB_v_q2->GetYaxis()->SetTitle("log_{10}Q^{2}");
     xB_v_q2->GetYaxis()->CenterLabels();
 
     gStyle->SetOptStat(0);
@@ -590,7 +593,7 @@ void ePIC_Plotting()
     xB_v_percent_0->SetMarkerStyle(8);
     xB_v_percent_0->SetMarkerColor(kBlack);
     xB_v_percent_0->SetLineColor(kBlack);
-    xB_v_percent_0->SetLineWidth(4);
+    xB_v_percent_0->SetLineWidth(3);
     xB_v_percent_0->SetMaximum(1.4);
     xB_v_percent_0->SetMinimum(-0.001);
     xB_v_percent_0->GetXaxis()->SetTitleOffset(1.2);
@@ -598,17 +601,17 @@ void ePIC_Plotting()
     xB_v_percent_1->SetMarkerStyle(8);
     xB_v_percent_1->SetMarkerColor(kBlue);
     xB_v_percent_1->SetLineColor(kBlue);
-    xB_v_percent_1->SetLineWidth(4);
+    xB_v_percent_1->SetLineWidth(3);
     
     xB_v_percent_2->SetMarkerStyle(8);
     xB_v_percent_2->SetMarkerColor(kRed);
     xB_v_percent_2->SetLineColor(kRed);
-    xB_v_percent_2->SetLineWidth(4);
+    xB_v_percent_2->SetLineWidth(3);
     
     xB_v_percent_all->SetMarkerStyle(8);
     xB_v_percent_all->SetMarkerColor(kMagenta);
     xB_v_percent_all->SetLineColor(kMagenta);
-    xB_v_percent_all->SetLineWidth(4);
+    xB_v_percent_all->SetLineWidth(3);
     
     gStyle->SetEndErrorSize(0);
     
@@ -625,7 +628,7 @@ void ePIC_Plotting()
     xB_percent_leg->AddEntry(xB_v_percent_all, "All Calo", "P");
     xB_percent_leg->Draw();
     
-    TLine *hundred_line = new TLine(0.,1.,0.1,1.);  // (x1,y1,x2,y2)
+    TLine *hundred_line = new TLine(0.,1.,1,1.);  // (x1,y1,x2,y2)
     hundred_line->SetLineColor(kBlack);
     hundred_line->SetLineWidth(2);
     hundred_line->SetLineStyle(kDashed);
@@ -649,7 +652,7 @@ void ePIC_Plotting()
     xB_q2_hist->SetMarkerColor(kWhite);
     xB_q2_hist->SetMarkerSize(2);
     xB_q2_hist->GetXaxis()->SetTitle("x_{Bj}");
-    xB_q2_hist->GetYaxis()->SetTitle("q^{2}");
+    xB_q2_hist->GetYaxis()->SetTitle("Q^{2} (GeV^{2})");
     
      //gStyle->SetOptStat(0);
     TCanvas *canvas11 = new TCanvas(name11, strang, 600, 600);
@@ -716,8 +719,8 @@ void ePIC_Plotting()
     canvas12->Print(filename12, "pdf");
     
     // end of all eta histogram
-    
-    
+    /*
+    // start of New q2 Histogram
     TString name14 = TString("newQ2");
      
     TString filename14 = pdfdir + TString("/") + TString(name14) + TString(".pdf");
@@ -733,7 +736,9 @@ void ePIC_Plotting()
     //newQ2->Draw("E SAME");
     canvas14->Draw();
     canvas14->Print(filename14, "pdf");
+    // end of new q2 Histogram
     
+    // start of New Xb histogram
     TString name15 = TString("newXb");
      
     TString filename15 = pdfdir + TString("/") + TString(name15) + TString(".pdf");
@@ -749,6 +754,280 @@ void ePIC_Plotting()
     //newXb->Draw("E SAME");
     canvas15->Draw();
     canvas15->Print(filename15, "pdf");
+    // end of new Xb histogram
+    */
+    
+    // start of xb by num in nHCal histogram
+    
+    TString name16 = TString("Xb_num_in_nHCal");
+    
+    TString filename16 = pdfdir + TString("/") + TString(name16) + TString(".pdf");
+    
+    TH1D *xBjorken_0 = (TH1D*)ifile->Get("xBjorken0");
+    TH1D *xBjorken_1 = (TH1D*)ifile->Get("xBjorken1");
+    TH1D *xBjorken_2 = (TH1D*)ifile->Get("xBjorken2");
+    
+    gStyle->SetOptStat(0);
+    
+    TCanvas *canvas16 = new TCanvas(name16, strang, 800, 600);
+    canvas16->SetLogx();
+    canvas16->SetTopMargin(0.07);
+    xBjorken->SetLineColor(kBlack);
+    xBjorken->SetLineStyle(kDashed);
+    xBjorken->Draw("HIST");
+    
+    xBjorken_0->SetLineColor(kRed);
+    xBjorken_0->Draw("HIST SAME");
+    
+    xBjorken_1->SetLineColor(kBlue);
+    xBjorken_1->Draw("HIST SAME");
+    
+    xBjorken_2->SetLineColor(kMagenta);
+    xBjorken_2->Draw("HIST SAME");
+    
+    auto xB_num_in_nHCal_leg = new TLegend(0.65,0.75,0.85,0.9);
+    xB_num_in_nHCal_leg->SetFillStyle(0);
+    xB_num_in_nHCal_leg->AddEntry(xBjorken, "All events", "l");
+    xB_num_in_nHCal_leg->AddEntry(xBjorken_0, "0-K in nHCAL", "l");
+    xB_num_in_nHCal_leg->AddEntry(xBjorken_1, "1-K in nHCAL", "l");
+    xB_num_in_nHCal_leg->AddEntry(xBjorken_2, "2-K in nHCAL", "l");
+    xB_num_in_nHCal_leg->Draw();
+    
+    canvas16->Draw();
+    canvas16->Print(filename16, "pdf");
+    
+    // End of xb by num in nHCal Histogram
+    
+    //start of q2 by num in nhcal histogram
+    
+    TString name17 = TString("Q2_num_in_nHCal");
+    
+    TString filename17 = pdfdir + TString("/") + TString(name17) + TString(".pdf");
+    
+    TH1D *q2_0 = (TH1D*)ifile->Get("q2_0");
+    TH1D *q2_1 = (TH1D*)ifile->Get("q2_1");
+    TH1D *q2_2 = (TH1D*)ifile->Get("q2_2");
+    
+    gStyle->SetOptStat(0);
+    
+    TCanvas *canvas17 = new TCanvas(name17, strang, 800, 600);
+    canvas17->SetLogx();
+    canvas17->SetTopMargin(0.07);
+    q2->SetLineColor(kBlack);
+    q2->SetLineStyle(kDashed);
+    q2->Draw("HIST");
+    
+    q2_0->SetLineColor(kRed);
+    q2_0->Draw("HIST SAME");
+    
+    q2_1->SetLineColor(kBlue);
+    q2_1->Draw("HIST SAME");
+    
+    q2_2->SetLineColor(kMagenta);
+    q2_2->Draw("HIST SAME");
+    
+    auto q2_num_in_nHCal_leg = new TLegend(0.65,0.75,0.85,0.9);
+    q2_num_in_nHCal_leg->SetFillStyle(0);
+    q2_num_in_nHCal_leg->AddEntry(q2, "All events", "l");
+    q2_num_in_nHCal_leg->AddEntry(q2_0, "0-K in nHCAL", "l");
+    q2_num_in_nHCal_leg->AddEntry(q2_1, "1-K in nHCAL", "l");
+    q2_num_in_nHCal_leg->AddEntry(q2_2, "2-K in nHCAL", "l");
+    q2_num_in_nHCal_leg->Draw();
+    
+    canvas17->Draw();
+    canvas17->Print(filename17, "pdf");
+    
+    // end of q2 by num in nhcal histogram
+    
+    // FILE 18 - eta vs pT Scatterplot  //
+        
+        TString name18 = TString("eta_v_pT");
+        TString filename18 = pdfdir + TString("/") + TString(name18) + TString(".pdf");
+        TGraph *eta_v_pT = (TGraph*)ifile->Get("eta_v_pT");
+        
+        eta_v_pT->GetXaxis()->SetLimits(-4.5,4.5);
+        eta_v_pT->SetMaximum(4);
+        eta_v_pT->SetMarkerColor(kRed);
+        eta_v_pT->SetMarkerStyle(20);
+        eta_v_pT->SetMarkerSize(0.3);
+        
+        eta_v_pT->SetTitle("eta vs pT values");
+        eta_v_pT->GetXaxis()->SetTitle("eta");
+        eta_v_pT->GetYaxis()->SetTitle("pT");
+
+        gStyle->SetOptStat(0);
+
+        TCanvas *canvas18 = new TCanvas(name18, strang, 800, 700);
+        canvas18->SetTopMargin(0.07);
+        eta_v_pT->Draw("AP"); //Draw "A" - Axes, and "P" - Points(NOT lines)
+        canvas18->Draw();
+        canvas18->Print(filename18, "pdf");
+         
+    // End of FILE 18 - eta vs pT scatterplot //
+    
+    // FILE 19 - eta vs xB Scatterplot  //
+        
+        TString name19 = TString("eta_v_xB");
+         
+        TString filename19 = pdfdir + TString("/") + TString(name19) + TString(".pdf");
+         
+        TGraph *eta_v_xB = (TGraph*)ifile->Get("eta_v_xB");
+        
+        eta_v_xB->GetXaxis()->SetLimits(-4.5,4.5);
+        eta_v_xB->GetYaxis()->SetLimits(0.,0.1);
+        
+        //Make the points appear as larger red circles
+        eta_v_xB->SetMarkerColor(kRed);
+        eta_v_xB->SetMarkerStyle(20);
+        eta_v_xB->SetMarkerSize(0.3);
+        
+        //Add Title and Axis Labels
+        eta_v_xB->SetTitle("eta vs xB values");
+        eta_v_xB->GetXaxis()->SetTitle("eta");
+        eta_v_xB->GetYaxis()->SetTitle("xB");
+
+        gStyle->SetOptStat(0);
+
+        TCanvas *canvas19 = new TCanvas(name19, strang, 800, 600);
+        canvas19->SetTopMargin(0.07);
+
+        eta_v_xB->Draw("AP"); //Draw "A" - Axes, and "P" - Points(NOT lines)
+        canvas19->Draw();
+        //canvas18->SetLogy();
+        canvas19->Print(filename19, "pdf");
+         
+    // End of FILE 19 - eta vs xB scatterplot //
+    
+    // FILE 20 - eta vs Q2 Scatterplot  //
+        
+        TString name20 = TString("eta_v_q2");
+         
+        TString filename20 = pdfdir + TString("/") + TString(name20) + TString(".pdf");
+         
+        TGraph *eta_v_q2 = (TGraph*)ifile->Get("eta_v_q2");
+        
+    eta_v_q2->GetXaxis()->SetLimits(-4.5,4.5);
+    eta_v_q2->GetYaxis()->SetLimits(0.,10);
+        
+        //Make the points appear as larger red circles
+    eta_v_q2->SetMarkerColor(kRed);
+    eta_v_q2->SetMarkerStyle(20);
+    eta_v_q2->SetMarkerSize(0.3);
+        
+        //Add Title and Axis Labels
+    eta_v_q2->SetTitle("eta vs Q2 values");
+    eta_v_q2->GetXaxis()->SetTitle("eta");
+    eta_v_q2->GetYaxis()->SetTitle("Q2");
+
+        gStyle->SetOptStat(0);
+
+        TCanvas *canvas20 = new TCanvas(name20, strang, 800, 600);
+        canvas20->SetTopMargin(0.07);
+
+    eta_v_q2->Draw("AP"); //Draw "A" - Axes, and "P" - Points(NOT lines)
+        canvas20->Draw();
+        //canvas18->SetLogy();
+        canvas20->Print(filename20, "pdf");
+         
+    // End of FILE 20 - eta vs Q2 scatterplot //
+    
+    // FILE 21 - eta_v_pT HISTOGRAM //
+     
+    // Define the name of the plot:
+    TString name21 = TString("eta_v_pT_hist");
+     
+    // Define the name of the pdf file:
+    TString filename21 = pdfdir + TString("/") + TString(name21) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *eta_v_pT_hist = (TH2F*)ifile->Get("eta_v_pT_hist");
+    eta_v_pT_hist->SetMarkerColor(kWhite);
+    eta_v_pT_hist->SetMarkerSize(2);
+    eta_v_pT_hist->GetXaxis()->SetTitle("eta");
+    eta_v_pT_hist->GetYaxis()->SetTitle("pT");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas21 = new TCanvas(name21, strang, 700, 600);
+    canvas21->SetTopMargin(0.07);
+
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    eta_v_pT_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas21->Update();
+    canvas21->SetLogy();
+    canvas21->Draw();
+    canvas21->Print(filename21, "pdf");
+
+    // end of FILE 21 - eta_v_pT histogram
+    
+    // FILE 22 - eta_v_xB HISTOGRAM //
+     
+    // Define the name of the plot:
+    TString name22 = TString("eta_v_xB_hist");
+     
+    // Define the name of the pdf file:
+    TString filename22 = pdfdir + TString("/") + TString(name22) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *eta_v_xB_hist = (TH2F*)ifile->Get("eta_v_xB_hist");
+    eta_v_xB_hist->SetMarkerColor(kWhite);
+    eta_v_xB_hist->SetMarkerSize(2);
+    eta_v_xB_hist->GetXaxis()->SetTitle("eta");
+    eta_v_xB_hist->GetYaxis()->SetTitle("x_{Bj}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas22 = new TCanvas(name22, strang, 700, 600);
+    canvas22->SetTopMargin(0.07);
+
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    eta_v_xB_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas22->Update();
+    canvas22->SetLogy();
+    canvas22->Draw();
+    canvas22->Print(filename22, "pdf");
+
+    // end of FILE 22 - eta_v_xB histogram
+    
+    // FILE 23 - eta_v_q2 HISTOGRAM //
+     
+    // Define the name of the plot:
+    TString name23 = TString("eta_v_q2_hist");
+     
+    // Define the name of the pdf file:
+    TString filename23 = pdfdir + TString("/") + TString(name23) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *eta_v_q2_hist = (TH2F*)ifile->Get("eta_v_q2_hist");
+    eta_v_q2_hist->SetMarkerColor(kWhite);
+    eta_v_q2_hist->SetMarkerSize(2);
+    eta_v_q2_hist->GetXaxis()->SetTitle("eta");
+    eta_v_q2_hist->GetYaxis()->SetTitle("Q^{2}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas23 = new TCanvas(name23, strang, 700, 600);
+    canvas23->SetTopMargin(0.07);
+
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    eta_v_q2_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas23->Update();
+    canvas23->SetLogy();
+    canvas23->Draw();
+    canvas23->Print(filename23, "pdf");
+
+    // end of FILE 23 - eta_v_q2 histogram
+    
+
     
   //
   cout << "Thank you for running Caro's macro.\n";
