@@ -661,8 +661,8 @@ void ePIC_Plotting()
     canvas11->SetTopMargin(0.07);
 
      // Set color palette and axis labels
-    canvas11->SetRightMargin(0.15);
-    canvas11->SetLeftMargin(0.15);
+    canvas11->SetRightMargin(0.1);
+    canvas11->SetLeftMargin(0.1);
 
     gStyle->SetPalette(kBird);// Choose color palette
     gStyle->SetNumberContours(256);
@@ -948,6 +948,7 @@ void ePIC_Plotting()
     
      //gStyle->SetOptStat(0);
     TCanvas *canvas21 = new TCanvas(name21, strang, 700, 600);
+    canvas21->SetLogy();
     canvas21->SetTopMargin(0.07);
 
     gStyle->SetPalette(kBird);// Choose color palette
@@ -957,7 +958,6 @@ void ePIC_Plotting()
 
     // Update the canvas
     canvas21->Update();
-    canvas21->SetLogy();
     canvas21->Draw();
     canvas21->Print(filename21, "pdf");
 
@@ -1027,6 +1027,423 @@ void ePIC_Plotting()
 
     // end of FILE 23 - eta_v_q2 histogram
     
+    // start of FILE 24 - Calculated X_Bjorken Histogram
+    
+    TString name24 = TString("calcXb");
+     
+    TString filename24 = pdfdir + TString("/") + TString(name24) + TString(".pdf");
+     
+    TH1D *reco_calcXb = (TH1D*)ifile->Get("reco_calcXb");
+    TH1D *gen_calcXb = (TH1D*)ifile->Get("gen_calcXb");
+     
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas24 = new TCanvas(name24, strang, 800, 600);
+    canvas24->SetLogx();
+    canvas24->SetTopMargin(0.07);
+    
+    xBjorken->SetLineColor(kBlack);
+    xBjorken->SetLineStyle(kDashed);
+    xBjorken->Draw("HIST");
+    
+    reco_calcXb->SetLineColor(kBlue);
+    reco_calcXb->Draw("HIST SAME");
+    
+    gen_calcXb->SetLineColor(kRed);
+    gen_calcXb->Draw("HIST SAME");
+    canvas24->Draw();
+    
+    auto leg24 = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg24->SetBorderSize(0);
+    leg24->SetFillStyle(0);
+    leg24->SetTextSize(0.03);
+    leg24->AddEntry(xBjorken,"ROOT x_{Bj}","l");
+    leg24->AddEntry(reco_calcXb,"reco calc x_{Bj}","l");
+    leg24->AddEntry(gen_calcXb,"gen calc x_{Bj}","l");
+    leg24->Draw();
+    
+    canvas24->Print(filename24, "pdf");
+
+    // end of FILE 24 - Calculated X_Bjorken Histogram
+    
+    // start of FILE 25 - Calculated Q-squared Histogram
+    
+    TString name25 = TString("calcQ2");
+     
+    TString filename25 = pdfdir + TString("/") + TString(name25) + TString(".pdf");
+     
+    TH1D *reco_calcQ2 = (TH1D*)ifile->Get("reco_calcQ2");
+    TH1D *gen_calcQ2 = (TH1D*)ifile->Get("gen_calcQ2");
+     
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas25 = new TCanvas(name25, strang, 800, 600);
+    canvas25->SetLogx();
+    canvas25->SetTopMargin(0.07);
+    
+    q2->SetLineColor(kBlack);
+    q2->SetLineStyle(kDashed);
+    q2->Draw("HIST");
+    
+    reco_calcQ2->SetLineColor(kBlue);
+    reco_calcQ2->Draw("HIST SAME");
+    
+    gen_calcQ2->SetLineColor(kRed);
+    gen_calcQ2->Draw("HIST SAME");
+    canvas25->Draw();
+    
+    auto leg25 = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg25->SetBorderSize(0);
+    leg25->SetFillStyle(0);
+    leg25->SetTextSize(0.03);
+    leg25->AddEntry(q2,"ROOT Q^{2}","l");
+    leg25->AddEntry(reco_calcQ2,"reco calc Q^{2}","l");
+    leg25->AddEntry(gen_calcQ2,"gen calc Q^{2}","l");
+    leg25->Draw();
+    
+    canvas25->Print(filename25, "pdf");
+
+    // end of FILE 25 - Calculated Q-squared Histogram
+    
+    // start of FILE 26 - Reconstructed Calculated xBj vs Q2 Histogram
+    
+    TString name26 = TString("reco_xB_q2_hist");
+     
+    // Define the name of the pdf file:
+    TString filename26 = pdfdir + TString("/") + TString(name26) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *reco_xB_q2_hist = (TH2F*)ifile->Get("reco_xB_q2_hist");
+    reco_xB_q2_hist->SetMarkerColor(kWhite);
+    reco_xB_q2_hist->SetMarkerSize(2);
+    reco_xB_q2_hist->GetXaxis()->SetTitle("x_{Bj}");
+    reco_xB_q2_hist->GetYaxis()->SetTitle("Q^{2}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas26 = new TCanvas(name26, strang, 600, 600);
+    canvas26->SetLogx();
+    canvas26->SetLogy();
+    canvas26->SetTopMargin(0.07);
+
+    
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    reco_xB_q2_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas26->Update();
+    
+    canvas26->Draw();
+    canvas26->Print(filename26, "pdf");
+
+    // end of FILE 26 - Reconstructed Calculated xBj vs Q2 Histogram
+    
+    // start of FILE 27 - Xbj % Error Histogram
+    
+    TString name27 = TString("calcXbj_Percent_Error");
+     
+    TString filename27 = pdfdir + TString("/") + TString(name27) + TString(".pdf");
+     
+    TH1D *reco_calcXb_PercentError = (TH1D*)ifile->Get("reco_calcXb_PercentError");
+    TH1D *gen_calcXb_PercentError = (TH1D*)ifile->Get("gen_calcXb_PercentError");
+    
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas27 = new TCanvas(name27, strang, 800, 600);
+    canvas27->SetTopMargin(0.07);
+    
+    reco_calcXb_PercentError->SetLineColor(kBlue);
+    gen_calcXb_PercentError->SetLineColor(kRed);
+    
+    gen_calcXb_PercentError->Draw("HIST");
+    reco_calcXb_PercentError->Draw("HIST SAME");
+    canvas27->Draw();
+    
+    auto leg27 = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg27->SetBorderSize(0);
+    leg27->SetFillStyle(0);
+    leg27->SetTextSize(0.03);
+    leg27->AddEntry(reco_calcXb_PercentError,"reco calc x_{Bj}","l");
+    leg27->AddEntry(gen_calcXb_PercentError,"gen calc x_{Bj}","l");
+    leg27->Draw();
+    
+    canvas27->Print(filename27, "pdf");
+
+    // end of FILE 27 - Xbj % Error Histogram
+    
+    // start of FILE 28 - Q2 % Error Histogram
+    
+    TString name28 = TString("calcQ2_Percent_Error");
+     
+    TString filename28 = pdfdir + TString("/") + TString(name28) + TString(".pdf");
+     
+    TH1D *reco_calcQ2_PercentError = (TH1D*)ifile->Get("reco_calcQ2_PercentError");
+    TH1D *gen_calcQ2_PercentError = (TH1D*)ifile->Get("gen_calcQ2_PercentError");
+    
+    gStyle->SetOptStat(0);
+
+    TCanvas *canvas28 = new TCanvas(name28, strang, 800, 600);
+    canvas28->SetTopMargin(0.07);
+    
+    reco_calcQ2_PercentError->SetLineColor(kBlue);
+    gen_calcQ2_PercentError->SetLineColor(kRed);
+    
+    gen_calcQ2_PercentError->Draw("HIST");
+    reco_calcQ2_PercentError->Draw("HIST SAME");
+    
+    auto leg28 = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg28->SetBorderSize(0);
+    leg28->SetFillStyle(0);
+    leg28->SetTextSize(0.03);
+    leg28->AddEntry(reco_calcXb_PercentError,"reco calc Q^{2}","l");
+    leg28->AddEntry(gen_calcXb_PercentError,"gen calc Q^{2}","l");
+    leg28->Draw();
+    
+    canvas28->Draw();
+    
+    canvas28->Print(filename28, "pdf");
+
+    // end of FILE 28 - Q2 % Error Histogram
+    
+    // start of FILE 29 - Generated Calculated xBj vs Q2 Histogram
+    
+    TString name29 = TString("gen_xB_q2_hist");
+     
+    // Define the name of the pdf file:
+    TString filename29 = pdfdir + TString("/") + TString(name29) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *gen_xB_q2_hist = (TH2F*)ifile->Get("gen_xB_q2_hist");
+    gen_xB_q2_hist->SetMarkerColor(kWhite);
+    gen_xB_q2_hist->SetMarkerSize(2);
+    gen_xB_q2_hist->GetXaxis()->SetTitle("x_{Bj}");
+    gen_xB_q2_hist->GetYaxis()->SetTitle("Q^{2}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas29 = new TCanvas(name29, strang, 600, 600);
+    canvas29->SetLogx();
+    canvas29->SetLogy();
+    canvas29->SetTopMargin(0.07);
+
+    
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    gen_xB_q2_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas29->Update();
+    
+    canvas29->Draw();
+    canvas29->Print(filename29, "pdf");
+
+    // end of FILE 29 - Generated Calculated xBj vs Q2 Histogram
+    
+    // start of FILE 30 - Generated vs Reconstructed Calculated xBj Histogram
+    
+    TString name30 = TString("gen_reco_xB_hist");
+     
+    // Define the name of the pdf file:
+    TString filename30 = pdfdir + TString("/") + TString(name30) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *gen_reco_xB_hist = (TH2F*)ifile->Get("gen_reco_xB_hist");
+    gen_reco_xB_hist->SetMarkerColor(kWhite);
+    gen_reco_xB_hist->SetMarkerSize(2);
+    gen_reco_xB_hist->GetXaxis()->SetTitle("Generated Calc x_{Bj}");
+    gen_reco_xB_hist->GetYaxis()->SetTitle("Reconstructed Calc x_{Bj}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas30 = new TCanvas(name30, strang, 600, 600);
+    canvas30->SetLogx();
+    canvas30->SetLogy();
+    canvas30->SetTopMargin(0.07);
+    canvas30->SetLeftMargin(0.13);
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    gen_reco_xB_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas30->Update();
+    
+    canvas30->Draw();
+    canvas30->Print(filename30, "pdf");
+
+    // end of FILE 30 - Generated vs Reconstructed Calculated xBj Histogram
+    
+    // start of FILE 31 - Generated vs Reconstructed Calculated xBj Histogram
+    
+    TString name31 = TString("gen_reco_q2_hist");
+     
+    // Define the name of the pdf file:
+    TString filename31 = pdfdir + TString("/") + TString(name31) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *gen_reco_q2_hist = (TH2F*)ifile->Get("gen_reco_q2_hist");
+    gen_reco_q2_hist->SetMarkerColor(kWhite);
+    gen_reco_q2_hist->SetMarkerSize(2);
+    gen_reco_q2_hist->GetXaxis()->SetTitle("Generated Calc Q^{2}");
+    gen_reco_q2_hist->GetYaxis()->SetTitle("Reconstructed Calc Q^{2}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas31 = new TCanvas(name31, strang, 600, 600);
+    canvas31->SetLogx();
+    canvas31->SetLogy();
+    canvas31->SetTopMargin(0.07);
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    gen_reco_q2_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas31->Update();
+    
+    canvas31->Draw();
+    canvas31->Print(filename31, "pdf");
+
+    // end of FILE 31 - Generated vs Reconstructed Calculated xBj Histogram
+    
+    // start of FILE 32 - Generated Calc vs ROOT xBj Histogram
+    
+    TString name32 = TString("gen_root_xB_hist");
+     
+    // Define the name of the pdf file:
+    TString filename32 = pdfdir + TString("/") + TString(name32) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *gen_root_xB_hist = (TH2F*)ifile->Get("gen_root_xB_hist");
+    gen_root_xB_hist->SetMarkerColor(kWhite);
+    gen_root_xB_hist->SetMarkerSize(2);
+    gen_root_xB_hist->GetXaxis()->SetTitle("Generated Calc x_{Bj}");
+    gen_root_xB_hist->GetYaxis()->SetTitle("ROOT Prodived x_{Bj}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas32 = new TCanvas(name32, strang, 600, 600);
+    canvas32->SetLogx();
+    canvas32->SetLogy();
+    canvas32->SetTopMargin(0.07);
+    
+    canvas32->SetRightMargin(0.13);
+    canvas32->SetLeftMargin(0.12);
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    gen_root_xB_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas32->Update();
+    
+    canvas32->Draw();
+    canvas32->Print(filename32, "pdf");
+
+    // end of FILE 32 - Generated Calc vs ROOT xBj Histogram
+    
+    // start of FILE 33 - Reconstructed Calc vs ROOT xBj Histogram
+    
+    TString name33 = TString("reco_root_xB_hist");
+     
+    // Define the name of the pdf file:
+    TString filename33 = pdfdir + TString("/") + TString(name33) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *reco_root_xB_hist = (TH2F*)ifile->Get("reco_root_xB_hist");
+    reco_root_xB_hist->SetMarkerColor(kWhite);
+    reco_root_xB_hist->SetMarkerSize(2);
+    reco_root_xB_hist->GetXaxis()->SetTitle("Reconstructed Calc x_{Bj}");
+    reco_root_xB_hist->GetYaxis()->SetTitle("ROOT Provided x_{Bj}");
+    
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas33 = new TCanvas(name33, strang, 600, 600);
+    canvas33->SetLogx();
+    canvas33->SetLogy();
+    canvas33->SetTopMargin(0.07);
+    
+    canvas33->SetRightMargin(0.1);
+    canvas33->SetLeftMargin(0.15);
+    
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    reco_root_xB_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas33->Update();
+    
+    canvas33->Draw();
+    canvas33->Print(filename33, "pdf");
+
+    // end of FILE 33 - Reconstructed Calc vs ROOT xBj Histogram
+    
+    // start of FILE 34 - ALL GEN/RECO/ROOT DIFFS
+    
+    TString name34 = TString("gen_reco_xBj_q2_diffs");
+    // Define the name of the pdf file:
+    TString filename34 = pdfdir + TString("/") + TString(name34) + TString(".pdf");
+
+    TCanvas *canvas34 = new TCanvas(name34, strang, 1000, 600);
+    
+    TH1F *xBj_gen_reco_calc_diff = (TH1F*)ifile->Get("xBj_gen_reco_calc_diff");
+    TH1F *q2_gen_reco_calc_diff = (TH1F*)ifile->Get("q2_gen_reco_calc_diff");
+    TH1F *reco_calcXb_Diff = (TH1F*)ifile->Get("reco_calcXb_Diff");
+    TH1F *reco_calcQ2_Diff = (TH1F*)ifile->Get("reco_calcQ2_Diff");
+    TH1F *gen_calcXb_Diff = (TH1F*)ifile->Get("gen_calcXb_Diff");
+    TH1F *gen_calcQ2_Diff = (TH1F*)ifile->Get("gen_calcQ2_Diff");
+    
+    //devide the canvas into several pads (x,y):
+    canvas34->Divide(2,2);
+    
+    // go to the first one and do your thing
+    canvas34->cd(1);
+    xBj_gen_reco_calc_diff->Draw();
+    
+    // pad 2
+    canvas34->cd(2);
+    q2_gen_reco_calc_diff->Draw();
+
+    // pad 3
+    canvas34->cd(3);
+    reco_calcXb_Diff->SetLineColor(kBlue);
+    reco_calcXb_Diff->SetMaximum(7500);
+    reco_calcXb_Diff->Draw();
+    gen_calcXb_Diff->SetLineColor(kRed);
+    gen_calcXb_Diff->Draw("SAME");
+
+    auto leg_xb_diffs = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg_xb_diffs->SetBorderSize(0);
+    leg_xb_diffs->SetTextSize(0.05);
+    leg_xb_diffs->SetFillStyle(0);
+    leg_xb_diffs->AddEntry(reco_calcXb_Diff,"reco calc x_{Bj}","l");
+    leg_xb_diffs->AddEntry(gen_calcXb_Diff,"gen calc x_{Bj}","l");
+    leg_xb_diffs->Draw();
+    
+    // pad 4
+    canvas34->cd(4);
+    reco_calcQ2_Diff->SetLineColor(kBlue);
+    reco_calcQ2_Diff->SetMaximum(6000);
+    reco_calcQ2_Diff->Draw();
+    gen_calcQ2_Diff->SetLineColor(kRed);
+    gen_calcQ2_Diff->Draw("SAME");
+
+    auto leg_q2_diffs = new TLegend(0.65,0.8,0.85,0.9); //x1,y1,x2,y2,header
+    leg_q2_diffs->SetBorderSize(0);
+    leg_q2_diffs->SetTextSize(0.05);
+    leg_q2_diffs->SetFillStyle(0);
+    leg_q2_diffs->AddEntry(reco_calcQ2_Diff,"reco calc x_{Bj}","l");
+    leg_q2_diffs->AddEntry(gen_calcQ2_Diff,"gen calc x_{Bj}","l");
+    leg_q2_diffs->Draw();
+    
+    // draw canvas and print to pdf
+    canvas34->Draw();
+    canvas34->Print(filename34, "pdf");
+    
+    // end of FILE 34 - ALL GEN/RECO/ROOT DIFFS
 
     
   //

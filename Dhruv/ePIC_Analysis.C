@@ -1,16 +1,20 @@
 // Run this macro, from the Linux / Terminal command line, as
-// root -l -q ePIC_Analysis.C
+// root -l -q ePIC_Analysis.C/Users/dhruv/Desktop/ePIC/Dhruv/ePIC_Plotting.C
 // The only condition is that there is a subdirectory called "data" that contains the input MC file
 // (provided by Caroline on Box / copied from SDCC)
 // The name of this input MC file (variable "strang") is hardcoded in this macro and must match with the file name
 // CR 2024-08-14/20
 
-//Defines names and collection of Calorimeters/acceptances
+//Defines constants and collection of Calorimeters/acceptances
 const char* nHCal_name = "nHCal";
 const char* Barrel_name = "Barrel";
 const char* LFHCAL_name = "LFHCAL";
 const char *cals[] = {nHCal_name, Barrel_name, LFHCAL_name};
 double cal_limits[sizeof(cals)][2] = {{-4.05, -1.2}, {-1.2, 1.18}, {1.18, 4.2}};
+const double elec_BeamE = 18; // electron and proton beam energies (GeV)
+const double prot_BeamE = 110;
+const double elec_mom_init = -17.9999999927; // initial momentum magnitudes of electron and proton
+const double prot_mom_init = 109.996000636;
 
 //Array containing the number of phi mesons with 0, 1, or 2 kaons for each calorimeter
 float calNums[sizeof(cals)][3];
@@ -21,18 +25,18 @@ float calMatrix[4][4];
 void ConvertToLogBins2D(TH2F*& hist, int numBinsX, double minX, double maxX, int numBinsY, double minY, double maxY) {
     // Check if minX and minY are positive
     if (minX <= 0 || minY <= 0) {
-        std::cerr << "Error: Minimum values for logarithmic bins must be positive." << std::endl;
+        std::cerr << hist->GetName() << " Error: Minimum values for logarithmic bins must be positive." << std::endl;
         return;
     }
 
     // Prepare logarithmic bin edges for x-axis
     std::vector<float> binEdgesX(numBinsX + 1);
-    double logMinX = TMath::Log10(minX);
-    double logMaxX = TMath::Log10(maxX);
-    double logBinWidthX = (logMaxX - logMinX) / numBinsX;
-    for (int i = 0; i <= numBinsX; ++i) {
-        binEdgesX[i] = TMath::Power(10, logMinX + i * logBinWidthX);
-    }
+        double logMinX = TMath::Log10(minX);
+        double logMaxX = TMath::Log10(maxX);
+        double logBinWidthX = (logMaxX - logMinX) / numBinsX;
+        for (int i = 0; i <= numBinsX; ++i) {
+            binEdgesX[i] = TMath::Power(10, logMinX + i * logBinWidthX);
+        }
 
     // Prepare logarithmic bin edges for y-axis
     std::vector<float> binEdgesY(numBinsY + 1);
@@ -42,27 +46,38 @@ void ConvertToLogBins2D(TH2F*& hist, int numBinsX, double minX, double maxX, int
     for (int i = 0; i <= numBinsY; ++i) {
         binEdgesY[i] = TMath::Power(10, logMinY + i * logBinWidthY);
     }
-
+    
     // Create a new 2D histogram with logarithmic binning on both axes
-    TH2F* logHist2D = new TH2F("logHist2D", hist->GetTitle(), numBinsX, binEdgesX.data(), numBinsY, binEdgesY.data());
+    TH2F* logHist2D = new TH2F(hist->GetName(), hist->GetTitle(), numBinsX, binEdgesX.data(), numBinsY, binEdgesY.data());
 
-    // Transfer contents from the old histogram to the new one
-    for (int i = 1; i <= hist->GetNbinsX(); ++i) {
-        for (int j = 1; j <= hist->GetNbinsY(); ++j) {
-            double x = hist->GetXaxis()->GetBinCenter(i);
-            double y = hist->GetYaxis()->GetBinCenter(j);
-            double content = hist->GetBinContent(i, j);
-
-            int bin = logHist2D->FindBin(x, y);
-            if (bin > 0) {
-                logHist2D->SetBinContent(bin, content + logHist2D->GetBinContent(bin));
-            }
-        }
-    }
-
-    // Replace the old histogram with the new one
     delete hist;      // Delete the old histogram to free memory
     hist = logHist2D; // Update the pointer to point to the new histogram
+}
+
+void ConvertToLogYBins2D(TH2F*& histY, int numBinsX, double minX, double maxX, int numBinsY, double minY, double maxY) {
+    if (minY <= 0) {
+        std::cerr << histY->Class_Name() << "Error: Minimum values for logarithmic bins must be positive." << std::endl;
+        return;
+    }
+    
+    std::vector<float> binEdgesX(numBinsX + 1);
+    double binWidthX = (maxX - minX) / numBinsX;
+    for (int i = 0; i <= numBinsX; ++i) {
+        binEdgesX[i] = minX + i * binWidthX;
+    }
+    
+    std::vector<float> binEdgesY(numBinsY + 1);
+    double logMinY = TMath::Log10(minY);
+    double logMaxY = TMath::Log10(maxY);
+    double logBinWidthY = (logMaxY - logMinY) / numBinsY;
+    for (int i = 0; i <= numBinsY; ++i) {
+        binEdgesY[i] = TMath::Power(10, logMinY + i * logBinWidthY);
+    }
+    
+    TH2F* logYHist2D = new TH2F(histY->GetName(), histY->GetTitle(), numBinsX, binEdgesX.data(), numBinsY, binEdgesY.data());
+    
+    delete histY;
+    histY = logYHist2D;
 }
 
 void ConvertToLogBins(TH1F*& hist, int numBins, double min, double max) {
@@ -168,16 +183,20 @@ void fill_Cal_Arr(float p1_eta, float p2_eta) {
 //Create a class phiDecay representing each decay and contain attributes of each decay in a single unit for access throughout the program
 class phiDecay {
 public:
-    float eta1, eta2, k1_pT, k2_pT;
+    float eta1, eta2, k1_pT, k2_pT, genEta1, genEta2;
+    double x_b, q2, reco_calcXb, reco_calcQ2, gen_calcXb, gen_calcQ2;
+    double reco_elec_mom_x_f, reco_elec_mom_y_f, reco_elec_mom_z_f, reco_elec_energy_f;
+    double gen_elec_mom_x_f, gen_elec_mom_y_f, gen_elec_mom_z_f, gen_elec_energy_f;
     int num_in_nHCal;
-    double x_b, q2;
     int reco_parts;
+    bool k1_reco = false, k2_reco = false, reco_electron = false;
     
     phiDecay(float e1, float e2, double xb_val, double q2_val) {
         eta1 = e1;
         eta2 = e2;
         x_b = xb_val;
         q2 = q2_val;
+        
         
         int particles_in_cal = 0;
         
@@ -202,6 +221,20 @@ public:
             particles_in_cal++; }
         
         num_in_nHCal = particles_in_cal;
+    }
+    
+    void calcRecoXbQ2() {
+        reco_calcQ2 = -(((elec_BeamE - reco_elec_energy_f) * (elec_BeamE - reco_elec_energy_f)) - (reco_elec_mom_x_f * reco_elec_mom_x_f) - (reco_elec_mom_y_f * reco_elec_mom_y_f) - ((elec_mom_init - reco_elec_mom_z_f) * (elec_mom_init - reco_elec_mom_z_f)));
+        
+        reco_calcXb = reco_calcQ2/(2 * ((prot_BeamE * (elec_BeamE - reco_elec_energy_f)) - prot_mom_init * (elec_mom_init - reco_elec_mom_z_f)));
+    }
+    
+    void calcGenXbQ2() {
+        gen_elec_energy_f = sqrt((0.000511 * 0.000511) + (gen_elec_mom_x_f * gen_elec_mom_x_f) + (gen_elec_mom_y_f * gen_elec_mom_y_f) + (gen_elec_mom_z_f * gen_elec_mom_z_f));
+        
+        gen_calcQ2 = -(((elec_BeamE - gen_elec_energy_f) * (elec_BeamE - gen_elec_energy_f)) - (gen_elec_mom_x_f * gen_elec_mom_x_f) - (gen_elec_mom_y_f * gen_elec_mom_y_f) - ((elec_mom_init - gen_elec_mom_z_f) * (elec_mom_init - gen_elec_mom_z_f)));
+        
+        gen_calcXb = gen_calcQ2/(2 * ((prot_BeamE * (elec_BeamE - gen_elec_energy_f)) - prot_mom_init * (elec_mom_init - gen_elec_mom_z_f)));
     }
 };
 
@@ -274,12 +307,14 @@ void ePIC_Analysis(){
   TTreeReaderArray<float> partMomX(tree_reader, "MCParticles.momentum.x");
   TTreeReaderArray<float> partMomY(tree_reader, "MCParticles.momentum.y");
   TTreeReaderArray<float> partMomZ(tree_reader, "MCParticles.momentum.z");
+  //TTreeReaderArray<float> partEnergy(tree_reader, "MCParticles.energy");
   TTreeReaderArray<int> partPdg(tree_reader, "MCParticles.PDG");
 
   // Get Reconstructed Track Information
   TTreeReaderArray<float> trackMomX(tree_reader, "ReconstructedChargedParticles.momentum.x");
   TTreeReaderArray<float> trackMomY(tree_reader, "ReconstructedChargedParticles.momentum.y");
   TTreeReaderArray<float> trackMomZ(tree_reader, "ReconstructedChargedParticles.momentum.z");
+  TTreeReaderArray<float> trackPartEnergy(tree_reader, "ReconstructedChargedParticles.energy");
 
   // Get Associations Between MCParticles and ReconstructedChargedParticles
   TTreeReaderArray<unsigned int> recoAssoc(tree_reader, "ReconstructedChargedParticleAssociations.recID");
@@ -300,15 +335,38 @@ void ePIC_Analysis(){
   TH2D *kaonOccurrence = new TH2D("kaonOccurrence", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', Kaon HCal Acceptance (%);K_{1};K_{2}", 4, 0, 4, 4, 0, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
   
   //xB vs q2 histogram
-  TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs Q^{2} Occurrence(%)", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
+  TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs Q^{2} Occurrence", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
   ConvertToLogBins2D(xB_q2_hist, 40, 1e-4, 0.02, 40, 1, 10);
   
   //Histogram displaying all eta of all kaons of run
   TH1F *all_eta = new TH1F("all_eta", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- eta Distribution; #eta", 100, -5, 5);
     
   //X-bjorken Histogram
-  TH1F *xBjorken = new TH1F("xBjorken", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution; x_{Bj}", 75, 1e-4, 0.075);
-  ConvertToLogBins(xBjorken, 75, 1e-4, 0.075);
+  TH1F *xBjorken = new TH1F("xBjorken", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution; x_{Bj}", 75, 1e-5, 0.075);
+  ConvertToLogBins(xBjorken, 75, 1e-5, 0.075);
+    
+    TH1F *reco_calcXb = new TH1F("reco_calcXb", "Calculated vs Reconstructed x_{Bj}", 75, 1e-5, 0.075);
+    ConvertToLogBins(reco_calcXb, 75, 1e-5, 0.075);
+    TH1F *reco_calcXb_Diff = new TH1F("reco_calcXb_Diff", "Reco Calculated vs ROOT x_{Bj} Difference (reco-root)", 75, -0.05, 0.05);
+    TH1F *reco_calcXb_PercentError = new TH1F("reco_calcXb_PercentError", "ROOT vs Calculated x_{Bj} % Error (100(calc-reco)/reco)", 75, -300, 300);
+    
+    TH1F *reco_calcQ2 = new TH1F("reco_calcQ2", "Calculated vs Reconstructed Q^{2}", 50, 0.1, 10);
+    ConvertToLogBins(reco_calcQ2, 50, 0.1, 10);
+    TH1F *reco_calcQ2_Diff = new TH1F("reco_calcQ2_Diff", "Reco Calculated vs ROOT Q^{2} Difference (reco-root)", 75, -4, 4);
+    TH1F *reco_calcQ2_PercentError = new TH1F("reco_calcQ2_PercentError", "ROOT vs Calculated Q^{2} % Error (100(calc-reco)/reco)", 75, -100, 100);
+    
+    TH1F *gen_calcXb = new TH1F("gen_calcXb", "Calculated vs Reconstructed x_{Bj}", 75, 1e-5, 0.075);
+    ConvertToLogBins(gen_calcXb, 75, 1e-5, 0.075);
+    TH1F *gen_calcXb_Diff = new TH1F("gen_calcXb_Diff", "Gen Calculated vs ROOT x_{Bj} Difference (gen-root)", 75, -0.05, 0.05);
+    TH1F *gen_calcXb_PercentError = new TH1F("gen_calcXb_PercentError", "ROOT vs Calculated x_{Bj} % Error (100(calc-reco)/reco)", 75, -300, 300);
+    
+    TH1F *gen_calcQ2 = new TH1F("gen_calcQ2", "Calculated vs Reconstructed Q^{2}", 50, 0.1, 10);
+    ConvertToLogBins(gen_calcQ2, 50, 0.1, 10);
+    TH1F *gen_calcQ2_Diff = new TH1F("gen_calcQ2_Diff", "Gen Calculated vs ROOTd Q^{2} Difference (gen-root)", 75, -4, 4);
+    TH1F *gen_calcQ2_PercentError = new TH1F("gen_calcQ2_PercentError", "ROOT vs Calculated Q^{2} % Error (100(calc-reco)/reco)", 75, -100, 100);
+    
+    TH1F *xBj_gen_reco_calc_diff = new TH1F("xBj_gen_reco_calc_diff", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} Difference(Gen - Reco); x_{Bj}", 75, -0.05, 0.05);
+    TH1F *q2_gen_reco_calc_diff = new TH1F("q2_gen_reco_calc_diff", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} Difference(Gen - Reco); x_{Bj}", 75, -4, 4);
     
     TH1F *xBjorken_0 = new TH1F("xBjorken0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} distribution, 0 K+K- in nHCal; x_{Bj}", 75, 1e-4, 0.075);
     ConvertToLogBins(xBjorken_0, 75, 1e-4, 0.075);
@@ -318,8 +376,8 @@ void ePIC_Analysis(){
     ConvertToLogBins(xBjorken_2, 75, 1e-4, 0.075);
     
   //q^2 Histogram
-  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution; Q^{2} (GeV^{2})", 50, 1,10);
-    ConvertToLogBins(q2, 50, 1, 10);
+  TH1F *q2 = new TH1F("q2", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution; Q^{2} (GeV^{2})", 50, 0.1,10);
+    ConvertToLogBins(q2, 50, 0.1, 10);
     
     TH1F *q2_0 = new TH1F("q2_0", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay Q^{2} distribution, 0 K+K- in nHCal; Q^{2} (GeV^{2})", 50, 1,10);
       ConvertToLogBins(q2_0, 50, 1, 10);
@@ -336,13 +394,33 @@ void ePIC_Analysis(){
     
   //xB_v_q2 Graph
   TGraph *xB_v_q2 = new TGraph();
+    TH2F *reco_xB_q2_hist = new TH2F("reco_xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay calculated x_{Bj} vs Q^{2}", 40, 1e-4, 0.02, 40, 0.4, 10);
+    ConvertToLogBins2D(reco_xB_q2_hist, 40, 1e-4, 0.02, 40, 0.4, 10);
+    TH2F *gen_xB_q2_hist = new TH2F("gen_xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay calculated x_{Bj} vs Q^{2}", 40, 1e-4, 0.02, 40, 1, 10);
+    ConvertToLogBins2D(gen_xB_q2_hist, 40, 1e-4, 0.02, 40, 1, 10);
+    
+    TH2F *gen_reco_xB_hist = new TH2F("gen_reco_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay gen(x) v reco(y) calculated x_{Bj}", 40, 1e-4, 0.02, 40, 1e-4, 0.02);
+    ConvertToLogBins2D(gen_reco_xB_hist, 40, 1e-4, 0.02, 40, 1e-4, 0.02);
+    TH2F *gen_reco_q2_hist = new TH2F("gen_reco_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay gen(x) v reco(y) calculated Q^{2}", 40, 1, 10, 40, 0.4, 10);
+    ConvertToLogBins2D(gen_reco_q2_hist, 40, 1, 10, 40, 0.4, 10);
+    
+    TH2F *gen_root_xB_hist = new TH2F("gen_root_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay gen calc(x) vs root(y) x_{Bj}", 40, 1e-4, 0.02, 40, 1e-4, 0.02);
+    ConvertToLogBins2D(gen_root_xB_hist, 40, 1e-4, 0.02, 40, 1e-4, 0.02);
+    TH2F *reco_root_xB_hist = new TH2F("reco_root_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay reco calc(x) vs root(y) x_{Bj}", 40, 1e-4, 0.02, 40, 1e-4, 0.02);
+    ConvertToLogBins2D(reco_root_xB_hist, 40, 1e-4, 0.02, 40, 1e-4, 0.02);
     
     TGraph *eta_v_pT = new TGraph();
-    TH2F *eta_v_pT_hist = new TH2F("eta_v_pT_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs pT", 55, -4.5, 4.5, 55, 0, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    TH2F *eta_v_pT_hist = new TH2F("eta_v_pT_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs pT", 55, -4.5, 4.5, 55, 0.1, 4); // nbinsx, xlow, xup, nbinsy, ylow, yup
+   ConvertToLogYBins2D(eta_v_pT_hist, 55, -4.5, 4.5, 55, 0.1, 4);
+    
     TGraph *eta_v_xB = new TGraph();
-    TH2F *eta_v_xB_hist = new TH2F("eta_v_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs x_{Bj}", 55, -4.5, 4.5, 55, 0, 0.07); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    TH2F *eta_v_xB_hist = new TH2F("eta_v_xB_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs x_{Bj}", 55, -4.5, 4.5, 55, 0.0001, 0.07); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    ConvertToLogYBins2D(eta_v_xB_hist, 55, -4.5, 4.5, 55, 0.0001, 0.07);
+
     TGraph *eta_v_q2 = new TGraph();
-    TH2F *eta_v_q2_hist = new TH2F("eta_v_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs Q^{2}", 55, -4.5, 4.5, 55, 0, 22); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    TH2F *eta_v_q2_hist = new TH2F("eta_v_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- pseudorapidity vs Q^{2}", 55, -4.5, 4.5, 55, 1, 20); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    ConvertToLogYBins2D(eta_v_q2_hist, 55, -4.5, 4.5, 55, 1, 20);
+
     
   //xB vs percentage Histograms for 0, 1, 2 kaons in nHCal
   int xB_percent_nBins = 60;
@@ -453,7 +531,7 @@ void ePIC_Analysis(){
     int kaons_in_nHCal = 0; //set the number of kaons within tolerance to 0 and reset for each particle
     float k1_eta;
     float k2_eta;
-    cout << "+ Entering event #: " << ievgen << " \n";
+    //cout << "+ Entering event #: " << ievgen << " \n";
     
     //cout << "Event #: " << ievgen << ", " << partGenStat.GetSize() << " gen particles, " << parents_index.GetSize() << " parent particles, " << daughters_index.GetSize() << " daughter particles \n";   // parent_index and daughter_index must be of the same length since they are in the same tree (is that what pushback does?)
 
@@ -487,10 +565,9 @@ void ePIC_Analysis(){
     int i_daughters = daughters_end[i] - daughters_begin[i];
 
     //Consider only selected generated particles:
-    if( (partGenStat[i] == 1) || (partGenStat[i] == 2) /*|| (partGenStat[i] = 4 */) // Select only stable or decay particles
+    if( (partGenStat[i] == 1) || (partGenStat[i] == 2 || (partGenStat[i] == 4)) /*|| (partGenStat[i] = 4 */) // Select only stable or decay particles
     {
       //cout << "Ev#: " << ievgen << ", P-index: " << i <<", PDG: " << partPdg[i] << ", GenStatus:" << partGenStat[i] << ", i_parents: "<< i_parents<<", i_daughters: " << i_daughters << ", pb: " << parents_index[i_parents_begin] << ", pe: " << parents_index[i_parents_end] <<  ", db: " << daughters_index[i_daughters_begin] << ", de: " << daughters_index[i_daughters_end] << " \n";
-
       // rho0 decays
       if( partPdg[i] == 113 )
         {
@@ -558,7 +635,7 @@ void ePIC_Analysis(){
               ndecay_phi_kk++;
               // tag it:
               is_phidecay_kk = 1;
-                decays.push_back(phiDecay());
+              decays.push_back(phiDecay());
 
               TVector3 trueMom_phi_k1(partMomX[daughters_index[i_daughters_begin]],partMomY[daughters_index[i_daughters_begin]],partMomZ[daughters_index[i_daughters_begin]]);
               TVector3 trueMom_phi_k2(partMomX[daughters_index[i_daughters_begin]+1],partMomY[daughters_index[i_daughters_begin]+1],partMomZ[daughters_index[i_daughters_begin]+1]);
@@ -568,6 +645,8 @@ void ePIC_Analysis(){
               float trueEta_phi_k2 = trueMom_phi_k2.PseudoRapidity();
               kpmfromphiEta->Fill(trueEta_phi_k1);
               kpmfromphiEta->Fill(trueEta_phi_k2);
+                decays[decays.size() - 1].genEta1 = trueEta_phi_k1;
+                decays[decays.size() - 1].genEta2 = trueEta_phi_k2;
 
               //cout << "--> Event " << ievgen << " phi(1020) decay to 2pi: generated phi eta: " << trueEta << ", pi1: " << trueEta_phi_k1 << ", pi2: " << trueEta_phi_k2 << "  \n";
               //cout << "            trueMomphi X: " << trueMom.X() << ", trueMomphi Y: " << trueMom.Y() <<", trueMomphi Z: " << trueMom.Z() << "  \n";
@@ -576,11 +655,19 @@ void ePIC_Analysis(){
             } // end of phi to pi+pi- decays
         } // end of 2-body decays
         } // end of phi meson decays
-      
       // count any generated particles:
       if( pdg == 11){
         ngen_electrons++;
         electronEta->Fill(trueEta);
+          if (i_parents == 1 && partGenStat[i] == 1) {
+              if (!decays.empty()) {
+                  decays[decays.size()-1].gen_elec_mom_x_f = partMomX[i];
+                  decays[decays.size()-1].gen_elec_mom_y_f = partMomY[i];
+                  decays[decays.size()-1].gen_elec_mom_z_f = partMomZ[i];
+                  //decays[decays.size()-1].reco_elec_energy_f = partEnergy[i];
+              }
+              /*cout << "the scattered electron has Q2 " << partQ2[0] << " and Xb " << partXb[0] << " with energy " << CPartEnergy << " and momentum x " << trackMomX[recoAssoc[j]] << " y " << trackMomY[recoAssoc[j]] << " z " << trackMomZ[recoAssoc[j]] << "\n";*/
+              }
       }// electrons
       else if( pdg == 13){
         ngen_muons++;
@@ -650,18 +737,31 @@ void ePIC_Analysis(){
           
           TVector3 recMom(trackMomX[recoAssoc[j]],trackMomY[recoAssoc[j]],trackMomZ[recoAssoc[j]]); // recoAssoc[j] is the index of the matched ReconstructedChargedParticle
           
+          float CPartMom = recMom.Mag();
           float CPartEta = recMom.PseudoRapidity();
           float CPartPhi = recMom.Phi();
-          
+          float CPartTheta = recMom.Theta();
+          float CPartEnergy = trackPartEnergy[recoAssoc[j]];
+            
           recEta->Fill(CPartEta);
           recPhi->Fill(CPartPhi);
           recP->Fill(recMom.Mag());
           
           //cout << "Particle is pdg: " << pdg << " .\n";
           
-          if( pdg == 11){
+          if(pdg == 11){
             nrec_electrons++;
             electronRecEta->Fill(CPartEta);
+              if (i_parents == 1 && partGenStat[i] == 1) {
+                  if (!decays.empty()) {
+                      decays[decays.size()-1].reco_electron = true;
+                      decays[decays.size()-1].reco_elec_mom_x_f = trackMomX[recoAssoc[j]];
+                      decays[decays.size()-1].reco_elec_mom_y_f = trackMomY[recoAssoc[j]];
+                      decays[decays.size()-1].reco_elec_mom_z_f = trackMomZ[recoAssoc[j]];
+                      decays[decays.size()-1].reco_elec_energy_f = CPartEnergy;
+                  }
+                  /*cout << "the scattered electron has Q2 " << partQ2[0] << " and Xb " << partXb[0] << " with energy " << CPartEnergy << " and momentum x " << trackMomX[recoAssoc[j]] << " y " << trackMomY[recoAssoc[j]] << " z " << trackMomZ[recoAssoc[j]] << "\n";*/
+                  }
           }// electrons
           else if( pdg == 13){
             nrec_muons++;
@@ -726,6 +826,7 @@ void ePIC_Analysis(){
           if( simuAssoc[j] == daughters_index[i_daughters_begin] ) // get the reco decay pi1 of the gen rho0, by accessing the correct MCParticle index
             {
                 reco_kk++;
+                decays[decays.size() - 1].k1_reco = true;
                 TVector3 recMom_phi_k1(trackMomX[recoAssoc[j]],trackMomY[recoAssoc[j]],trackMomZ[recoAssoc[j]]);
                 float recEta_phi_k1 = recMom_phi_k1.PseudoRapidity();
                 float recPhi_phi_k1 = recMom_phi_k1.Phi();
@@ -751,6 +852,7 @@ void ePIC_Analysis(){
           else if( simuAssoc[j] == daughters_index[i_daughters_begin]+1 ) // get the reco decay pi2 of the gen rho0
             {
                 reco_kk++;
+                decays[decays.size() - 1].k2_reco = true;
                 TVector3 recMom_phi_k2(trackMomX[recoAssoc[j]],trackMomY[recoAssoc[j]],trackMomZ[recoAssoc[j]]);
                 float recEta_phi_k2 = recMom_phi_k2.PseudoRapidity();
                 float recPhi_phi_k2 = recMom_phi_k2.Phi();
@@ -798,76 +900,78 @@ void ePIC_Analysis(){
     // now go to next event
     
   } // End loop over events
-
+    int numElec = 0;
     for (phiDecay decay : decays) {
-        kaons_in_Cal(decay.eta1, decay.eta2);
-        if (decay.reco_parts == 2) {
-            fill_Cal_Arr(decay.eta1, decay.eta2);
-        }
-        //Fill Graphs/Histograms
-        xBjorken->Fill(decay.x_b);
-        decay.set_num_in_nHCal();
-        //cout << "K1 HAS " << decay.k1_pT << " AND K2 HAS " << decay.k2_pT << " AND " << decay.num_in_nHCal << "\n";
-        q2->Fill(decay.q2);
-        if (decay.num_in_nHCal == 0) {
-            xBjorken_0->Fill(decay.x_b);
-            q2_0->Fill(decay.q2);
-        } else if (decay.num_in_nHCal == 1) {
-            xBjorken_1->Fill(decay.x_b);
-            q2_1->Fill(decay.q2);
-        } else if (decay.num_in_nHCal == 2) {
-            xBjorken_2->Fill(decay.x_b);
-            q2_2->Fill(decay.q2);
-        }
-        xB_v_q2->AddPoint(decay.x_b, decay.q2);
-        
-        if (decay.eta1 > 5.9479e-36 || decay.eta1 < -5.9479e-36) {
+        if (decay.reco_parts == 2 && decay.reco_electron) {
+            kaons_in_Cal(decay.eta1, decay.eta2);
+            fill_Cal_Arr(decay.genEta1, decay.genEta2);
+            decay.calcRecoXbQ2();
+            decay.calcGenXbQ2();
+            
+            //Fill Graphs/Histograms
+            xBjorken->Fill(decay.x_b);
+            q2->Fill(decay.q2);
+            reco_calcXb->Fill(decay.reco_calcXb);
+            reco_calcXb_PercentError->Fill(100*(decay.reco_calcXb-decay.x_b)/(decay.x_b));
+            reco_calcQ2->Fill(decay.reco_calcQ2);
+            reco_calcQ2_PercentError->Fill(100*(decay.reco_calcQ2-decay.q2)/(decay.q2));
+            gen_calcXb->Fill(decay.gen_calcXb);
+            gen_calcXb_PercentError->Fill(100*(decay.gen_calcXb-decay.x_b)/(decay.x_b));
+            gen_calcQ2->Fill(decay.gen_calcQ2);
+            gen_calcQ2_PercentError->Fill(100*(decay.gen_calcQ2-decay.q2)/(decay.q2));
+            xBj_gen_reco_calc_diff->Fill(decay.gen_calcXb-decay.reco_calcXb);
+            q2_gen_reco_calc_diff->Fill(decay.gen_calcQ2-decay.reco_calcQ2);
+            reco_calcXb_Diff->Fill(decay.reco_calcXb - decay.x_b);
+            reco_calcQ2_Diff->Fill(decay.reco_calcQ2 - decay.q2);
+            gen_calcXb_Diff->Fill(decay.gen_calcXb - decay.x_b);
+            gen_calcQ2_Diff->Fill(decay.gen_calcQ2 - decay.q2);
+            
+            decay.set_num_in_nHCal();
+            
+            if (decay.num_in_nHCal == 0) {
+                xBjorken_0->Fill(decay.x_b);
+                q2_0->Fill(decay.q2);
+            } else if (decay.num_in_nHCal == 1) {
+                xBjorken_1->Fill(decay.x_b);
+                q2_1->Fill(decay.q2);
+            } else if (decay.num_in_nHCal == 2) {
+                xBjorken_2->Fill(decay.x_b);
+                q2_2->Fill(decay.q2);
+            }
+            
+            xB_v_q2->AddPoint(decay.x_b, decay.q2);
+            
             eta_v_pT->AddPoint(decay.eta1, decay.k1_pT);
-            eta_v_xB->AddPoint(decay.eta1, decay.x_b);
+            eta_v_xB->AddPoint(decay.genEta1, decay.x_b);
             eta_v_q2->AddPoint(decay.eta1, decay.q2);
             
-            int eta_pT_bin_x = eta_v_pT_hist->GetXaxis()->FindBin(decay.eta1);
-            int eta_pT_bin_y = eta_v_pT_hist->GetYaxis()->FindBin(decay.k1_pT);
-            eta_v_pT_hist->SetBinContent(eta_pT_bin_x, eta_pT_bin_y, eta_v_pT_hist->GetBinContent(eta_pT_bin_x, eta_pT_bin_y)+1);
-            
-            int eta_xB_bin_x = eta_v_xB_hist->GetXaxis()->FindBin(decay.eta1);
-            int eta_xB_bin_y = eta_v_xB_hist->GetYaxis()->FindBin(decay.x_b);
-            eta_v_xB_hist->SetBinContent(eta_xB_bin_x, eta_xB_bin_y, eta_v_xB_hist->GetBinContent(eta_xB_bin_x, eta_xB_bin_y)+1);
-            
-            int eta_q2_bin_x = eta_v_q2_hist->GetXaxis()->FindBin(decay.eta1);
-            int eta_q2_bin_y = eta_v_q2_hist->GetYaxis()->FindBin(decay.q2);
-            eta_v_q2_hist->SetBinContent(eta_q2_bin_x, eta_q2_bin_y, eta_v_q2_hist->GetBinContent(eta_q2_bin_x, eta_q2_bin_y)+1);
-        }
-        if (decay.eta2 > 5.9479e-36 || decay.eta2 < -5.9479e-36) {
             eta_v_pT->AddPoint(decay.eta2, decay.k2_pT);
-            eta_v_xB->AddPoint(decay.eta2, decay.x_b);
+            eta_v_xB->AddPoint(decay.genEta2, decay.x_b);
             eta_v_q2->AddPoint(decay.eta2, decay.q2);
+            
+            eta_v_pT_hist->Fill(decay.eta1, decay.k1_pT);
+            eta_v_pT_hist->Fill(decay.eta2, decay.k2_pT);
 
-            int eta_pT_bin_x = eta_v_pT_hist->GetXaxis()->FindBin(decay.eta2);
-            int eta_pT_bin_y = eta_v_pT_hist->GetYaxis()->FindBin(decay.k2_pT);
-            eta_v_pT_hist->SetBinContent(eta_pT_bin_x, eta_pT_bin_y, eta_v_pT_hist->GetBinContent(eta_pT_bin_x, eta_pT_bin_y)+1);
+            eta_v_xB_hist->Fill(decay.eta1, decay.x_b);
+            eta_v_xB_hist->Fill(decay.eta2, decay.x_b);
             
-            int eta_xB_bin_x = eta_v_xB_hist->GetXaxis()->FindBin(decay.eta2);
-            int eta_xB_bin_y = eta_v_xB_hist->GetYaxis()->FindBin(decay.x_b);
-            eta_v_xB_hist->SetBinContent(eta_xB_bin_x, eta_xB_bin_y, eta_v_xB_hist->GetBinContent(eta_xB_bin_x, eta_xB_bin_y)+1);
+            eta_v_q2_hist->Fill(decay.eta1, decay.q2);
+            eta_v_q2_hist->Fill(decay.eta2, decay.q2);
             
-            int eta_q2_bin_x = eta_v_q2_hist->GetXaxis()->FindBin(decay.eta2);
-            int eta_q2_bin_y = eta_v_q2_hist->GetYaxis()->FindBin(decay.q2);
-            eta_v_q2_hist->SetBinContent(eta_q2_bin_x, eta_q2_bin_y, eta_v_q2_hist->GetBinContent(eta_q2_bin_x, eta_q2_bin_y)+1);
+            xB_q2_hist->Fill(decay.x_b, decay.q2);
+            reco_xB_q2_hist->Fill(decay.reco_calcXb, decay.reco_calcQ2);
+            gen_xB_q2_hist->Fill(decay.gen_calcXb, decay.gen_calcQ2);
+            gen_reco_xB_hist->Fill(decay.gen_calcXb, decay.reco_calcXb);
+            gen_reco_q2_hist->Fill(decay.gen_calcQ2, decay.reco_calcQ2);
+            gen_root_xB_hist->Fill(decay.gen_calcXb, decay.x_b);
+            reco_root_xB_hist->Fill(decay.reco_calcXb, decay.x_b);
         }
-        
-        
-        
-        int xb_q2_bin_x = xB_q2_hist->GetXaxis()->FindBin(decay.x_b);
-        int xb_q2_bin_y = xB_q2_hist->GetYaxis()->FindBin(decay.q2);
-        xB_q2_hist->SetBinContent(xb_q2_bin_x, xb_q2_bin_y, xB_q2_hist->GetBinContent(xb_q2_bin_x, xb_q2_bin_y)+1);
-        
-        if (decay.num_in_nHCal == 0 && (decay.x_b < 0.001) && decay.reco_parts == 2) {
-            cout << "Xbj is " << decay.x_b << " and the Kaon etas are " << decay.eta1 << " and " << decay.eta2 << "\n";
-        }
+        /*if (decay.reco_parts == 2 && decay.reco_electron == false) {
+            cout << "Event Number " << numElec << " has no reco elec\n";
+        }*/
+        numElec++;
     }
     
-    cout << "inB is " << inB << "\n";
     //start construction of xB_v_percent plot
     
     //Create a matrix with 4 rows containing values for each bin for 0, 1, 2 kaons in nHCal and all calo(WIP)
@@ -881,17 +985,19 @@ void ePIC_Analysis(){
     int numreco = 0;
     for (phiDecay decay : decays) { // iterate over all the phidecays and inrement array bins
         if (decay.reco_parts == 2) { numreco++; }
-        int bin_num = xB_v_percent_0->FindBin(decay.x_b);
-        decay.set_num_in_nHCal();
-        inBins[decay.num_in_nHCal][bin_num] += 1.0; // increment bin of kaon in nHCal tolerance
-        
-        // Check if decay has eta in any calorimeter
-        if (in_Cal_Tolerance(cals[0], decay.eta1) || in_Cal_Tolerance(cals[0], decay.eta2) ||
-            in_Cal_Tolerance(cals[1], decay.eta1) || in_Cal_Tolerance(cals[1], decay.eta2) ||
-            in_Cal_Tolerance(cals[2], decay.eta1) || in_Cal_Tolerance(cals[2], decay.eta2)) {
-            inBins[3][bin_num] += 1.0;
+        if (decay.reco_parts == 2) {
+            int bin_num = xB_v_percent_0->FindBin(decay.x_b);
+            decay.set_num_in_nHCal();
+            inBins[decay.num_in_nHCal][bin_num] += 1.0; // increment bin of kaon in nHCal tolerance
+            
+            // Check if decay has eta in any calorimeter
+            if (in_Cal_Tolerance(cals[0], decay.eta1) || in_Cal_Tolerance(cals[0], decay.eta2) ||
+                in_Cal_Tolerance(cals[1], decay.eta1) || in_Cal_Tolerance(cals[1], decay.eta2) ||
+                in_Cal_Tolerance(cals[2], decay.eta1) || in_Cal_Tolerance(cals[2], decay.eta2)) {
+                inBins[3][bin_num] += 1.0;
+            }
+            inBins[4][bin_num] += 1.0;
         }
-        inBins[4][bin_num] += 1.0;
     }
     
     for (int i = 0; i < xB_percent_nBins; i++) { // fill histograms with values from array
@@ -938,6 +1044,10 @@ void ePIC_Analysis(){
     eta_v_q2->Write("eta_v_q2");
     
     xB_q2_hist->Write("xB_q2_hist");
+    eta_v_pT_hist->Write("eta_v_pT_hist");
+    eta_v_xB_hist->Write("eta_v_xB_hist");
+    eta_v_q2_hist->Write("eta_v_q2_hist");
+
 
   // Calculate fractions:
   double fraction_rho0_pionpm_nHCal = 0.;
@@ -952,7 +1062,7 @@ void ePIC_Analysis(){
     //Calculate each value of kaonOccurrence as a percentage of the total number of kaons
     for (int i = 1; i < 5; i++) {
         for (int j = 1; j < 5; j++) {
-            kaonOccurrence->SetBinContent(i,j, round(100*100*calMatrix[4-j][i-1]/nreco_phi)/100);
+            kaonOccurrence->SetBinContent(i,j, round(100*100*calMatrix[4-j][i-1]/ndecay_phi_kk)/100);
         }
     }
   //
