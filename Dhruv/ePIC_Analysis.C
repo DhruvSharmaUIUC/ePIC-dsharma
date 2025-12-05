@@ -337,7 +337,10 @@ void ePIC_Analysis(){
   //xB vs q2 histogram
   TH2F *xB_q2_hist = new TH2F("xB_q2_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay x_{Bj} vs Q^{2} Occurrence", 40, 1e-4, 0.02, 40, 1, 10); // nbinsx, xlow, xup, nbinsy, ylow, yup
   ConvertToLogBins2D(xB_q2_hist, 40, 1e-4, 0.02, 40, 1, 10);
-  
+    
+  //K1 vs K2 eta histogram
+  TH2F *K1_K2_eta_hist = new TH2F("K1_K2_eta_hist", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', #phi meson decay K_{1} vs K_{2} Pseudorapodity(#eta)", 60, -4.05, 4.2, 60, -4.05, 4.2); // nbinsx, xlow, xup, nbinsy, ylow, yup
+    
   //Histogram displaying all eta of all kaons of run
   TH1F *all_eta = new TH1F("all_eta", "Sartre: e + Au#rightarrow e\'+#phi(KK)+Au\', K+K- eta Distribution; #eta", 100, -5, 5);
     
@@ -959,6 +962,7 @@ void ePIC_Analysis(){
             eta_v_q2_hist->Fill(decay.eta2, decay.q2);
             
             xB_q2_hist->Fill(decay.x_b, decay.q2);
+            K1_K2_eta_hist->Fill(decay.eta1, decay.eta2);
             reco_xB_q2_hist->Fill(decay.reco_calcXb, decay.reco_calcQ2);
             gen_xB_q2_hist->Fill(decay.gen_calcXb, decay.gen_calcQ2);
             gen_reco_xB_hist->Fill(decay.gen_calcXb, decay.reco_calcXb);
@@ -1047,7 +1051,6 @@ void ePIC_Analysis(){
     eta_v_pT_hist->Write("eta_v_pT_hist");
     eta_v_xB_hist->Write("eta_v_xB_hist");
     eta_v_q2_hist->Write("eta_v_q2_hist");
-
 
   // Calculate fractions:
   double fraction_rho0_pionpm_nHCal = 0.;

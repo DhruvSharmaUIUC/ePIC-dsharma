@@ -390,7 +390,7 @@ void ePIC_Plotting()
 
   gStyle->SetOptStat(0); //no stats box                 
 
-  TCanvas *canvas5 = new TCanvas(name5, strang, 800, 600);
+  TCanvas *canvas5 = new TCanvas(name5, strang, 800, 400);
     canvas5->SetTopMargin(0.07);
 
   // meager channels:
@@ -424,7 +424,7 @@ void ePIC_Plotting()
 
   // add vertical lines for nHCal acceptance
   Int_t binmax_5 = kpmfromphiEta->GetMaximumBin();
-  Double_t y_max5 = 0.6*kpmfromphiEta->GetBinContent(binmax_5);
+  Double_t y_max5 = 0.9*kpmfromphiEta->GetBinContent(binmax_5);
   TLine *eta_min_line5= new TLine(eta_min,0.,eta_min,y_max5);
   eta_min_line5->SetLineColor(kBlack);
   eta_min_line5->SetLineWidth(2);
@@ -591,8 +591,8 @@ void ePIC_Plotting()
     canvas10->SetTopMargin(0.07);
 
     xB_v_percent_0->SetMarkerStyle(8);
-    xB_v_percent_0->SetMarkerColor(kBlack);
-    xB_v_percent_0->SetLineColor(kBlack);
+    xB_v_percent_0->SetMarkerColor(kRed);
+    xB_v_percent_0->SetLineColor(kRed);
     xB_v_percent_0->SetLineWidth(3);
     xB_v_percent_0->SetMaximum(1.4);
     xB_v_percent_0->SetMinimum(-0.001);
@@ -604,13 +604,13 @@ void ePIC_Plotting()
     xB_v_percent_1->SetLineWidth(3);
     
     xB_v_percent_2->SetMarkerStyle(8);
-    xB_v_percent_2->SetMarkerColor(kRed);
-    xB_v_percent_2->SetLineColor(kRed);
+    xB_v_percent_2->SetMarkerColor(kMagenta);
+    xB_v_percent_2->SetLineColor(kMagenta);
     xB_v_percent_2->SetLineWidth(3);
     
     xB_v_percent_all->SetMarkerStyle(8);
-    xB_v_percent_all->SetMarkerColor(kMagenta);
-    xB_v_percent_all->SetLineColor(kMagenta);
+    xB_v_percent_all->SetMarkerColor(kBlack);
+    xB_v_percent_all->SetLineColor(kBlack);
     xB_v_percent_all->SetLineWidth(3);
     
     gStyle->SetEndErrorSize(0);
@@ -1445,7 +1445,37 @@ void ePIC_Plotting()
     
     // end of FILE 34 - ALL GEN/RECO/ROOT DIFFS
 
+    // FILE 35 - K1_K2_eta_hist HISTOGRAM //
+     
+    // Define the name of the plot:
+    TString name35 = TString("K1_K2_eta_hist");
+     
+    // Define the name of the pdf file:
+    TString filename35 = pdfdir + TString("/") + TString(name35) + TString(".pdf");
+     
+    //Get the histogram data from ePIC_Analysis.C
+    TH2F *K1_K2_eta_hist = (TH2F*)ifile->Get("K1_K2_eta_hist");
+    K1_K2_eta_hist->SetMarkerColor(kWhite);
+    K1_K2_eta_hist->SetMarkerSize(2);
+    K1_K2_eta_hist->GetXaxis()->SetTitle("#eta_{K1}");
+    K1_K2_eta_hist->GetYaxis()->SetTitle("#eta_{K2}");
     
+     //gStyle->SetOptStat(0);
+    TCanvas *canvas35 = new TCanvas(name35, strang, 700, 600);
+    canvas35->SetTopMargin(0.07);
+
+    gStyle->SetPalette(kBird);// Choose color palette
+    gStyle->SetNumberContours(256);
+
+    K1_K2_eta_hist->Draw("COLZ");
+
+    // Update the canvas
+    canvas35->Update();
+    canvas35->Draw();
+    canvas35->Print(filename35, "pdf");
+
+    // end of FILE 35 - K1_K2_eta_hist HISTOGRAM
+        
   //
   cout << "Thank you for running Caro's macro.\n";
   gSystem->Exec("date");
